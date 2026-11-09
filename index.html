@@ -828,6 +828,12 @@ function parseImport(text, fname) {
 }
 async function matchImport(x) {
   try { const u = new URL(x.url); if (!/^https?:$/.test(u.protocol)) throw 0; x = { ...x, url: u.href }; } catch { return { ...x, err: "некорректный URL" }; }
+  const im = x.name.match(/^(?:(movie|tv|tmdb)\s*[:=]\s*)?(\d{1,9})$/i);
+  if (im) {
+    let q = sb.from("titles").select("*").eq("tmdb_id", +im[2]); if (/^(movie|tv)$/i.test(im[1] || "")) q = q.eq("media_type", im[1].toLowerCase());
+    const l = (await q).data || [], m = l.find(t => t.media_type === "movie") || l[0];
+    return m ? { ...x, m } : { ...x, err: "нет в базе (TMDB " + im[2] + ")" };
+  }
   const ym = x.name.match(/^(.*?)\s*\((\d{4})\)\s*$/), nm = (ym ? ym[1] : x.name).trim(), yr = ym ? ym[2] : "", v = nm.replace(/[%,()]/g, "");
   if (v.length < 2) return { ...x, err: "пустое название" };
   const q = await sb.from("titles").select("*").or(`title_ru.ilike.%${v}%,title_en.ilike.%${v}%,original_title.ilike.%${v}%`).order("popularity", { ascending: false }).limit(15);
@@ -971,7 +977,7 @@ async function sourcesTab(ab) {
       <label class="lb">Порядок<input class="ai" name="ord" type="number" value="0"></label>
       <button class="btn fill" type="submit">Добавить</button></form><p id="sfe" class="bad" role="alert"></p></div>
       <div class="box"><h2 style="font-size:20px;margin-bottom:6px">Импорт из файла</h2>
-      <p class="hint" style="margin:0 0 10px">CSV: <code>название;ссылка;качество;порядок</code> (качество и порядок можно не указывать; год для точности: <code>Начало (2010)</code>). M3U/M3U8: название берётся из <code>#EXTINF</code>.</p>
+      <p class="hint" style="margin:0 0 10px">CSV: <code>название или TMDB ID;ссылка;качество;порядок</code> (качество и порядок можно не указывать). Вместо названия можно ID с TMDB: <code>27205</code>, для сериала <code>tv:1399</code>. Год для точности: <code>Начало (2010)</code>. M3U/M3U8: название берётся из <code>#EXTINF</code>.</p>
       <input class="ai" id="imf" type="file" accept=".csv,.tsv,.txt,.m3u,.m3u8"><div id="imr" style="margin-top:10px"></div></div>
       <div class="box"><h2 style="font-size:20px;margin-bottom:6px">Все источники (${rows.length})</h2>${r.error ? `<p class="bad">${esc(r.error.message)}</p>` : ""}
       ${rows.length ? rows.map(x => `<div class="row" data-id="${x.id}"><div class="grow"><b>${esc(x.label)}</b>${x.quality ? ` · ${esc(x.quality)}` : ""}<small>${esc(x.titles ? T(x.titles) : "#" + x.title_id)} · ${esc(x.url)}</small></div>
