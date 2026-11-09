@@ -1,0 +1,1061 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>watch. — фильмы и сериалы</title>
+<style>
+:root{color-scheme:light dark;--bg:#fff;--bg2:#f5f5f7;--ink:#1d1d1f;--mute:#6e6e73;--blue:#1d1d1f;--blueh:#000;--line:#d2d2d7;--nav:rgba(255,255,255,.72);--navs:#fff}
+@media(prefers-color-scheme:dark){:root{--bg:#000;--bg2:#1d1d1f;--ink:#f5f5f7;--mute:#a1a1a6;--blue:#f5f5f7;--blueh:#fff;--line:#424245;--nav:rgba(29,29,31,.72);--navs:#161617}}
+*{box-sizing:border-box;margin:0;padding:0}
+html{scroll-behavior:smooth}
+body{font:17px/1.47 Inter,system-ui,-apple-system,"Segoe UI",Roboto,Arial,sans-serif;letter-spacing:-.022em;background:var(--bg);color:var(--ink);-webkit-font-smoothing:antialiased;overflow-x:hidden}
+h1,h2,h3{font-family:inherit;font-weight:600;letter-spacing:-.003em}
+a{color:inherit;text-decoration:none}button,select,input,textarea{font:inherit;font-family:inherit;color:inherit;letter-spacing:inherit}button{cursor:pointer}
+:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
+
+.topban{height:28px;display:flex;align-items:center;justify-content:center;gap:12px;background:linear-gradient(90deg,#0a0a0c,#26262b 50%,#0a0a0c);color:#f5f5f7;font-size:12px;letter-spacing:.32em;text-transform:uppercase;white-space:nowrap;overflow:hidden;position:relative}
+.topban::after{content:"";position:absolute;left:0;right:0;bottom:0;height:1px;background:linear-gradient(90deg,transparent,rgba(255,255,255,.35),transparent)}
+.topban span{font-weight:700}.topban i{font-style:normal;opacity:.6}.topban em{font-style:normal;font-weight:400;opacity:.55;letter-spacing:.24em}
+@media(max-width:480px){.topban{font-size:11px;letter-spacing:.24em}.topban em{display:none}}
+@media(max-width:833px){#gn .gn-r{margin-left:auto}}
+/* global nav (Apple) */
+#gn{position:fixed;top:0;left:0;right:0;z-index:50;background:var(--nav);backdrop-filter:saturate(180%) blur(20px);-webkit-backdrop-filter:saturate(180%) blur(20px)}
+.gn-in{max-width:1800px;height:48px;margin:0 auto;padding:0 22px;display:flex;align-items:center;gap:6px}
+.logo{font:700 21px -apple-system,"SF Pro Display",Georgia,serif;letter-spacing:-.03em;margin-right:8px}.logo span{color:var(--blue)}
+.links{display:flex;gap:2px;margin:0 auto}
+.links a{font-size:13px;padding:0 13px;line-height:48px;opacity:.78;transition:opacity .2s}
+.links a:hover,.links a.on{opacity:1}
+.gn-r{display:flex;align-items:center;gap:8px}
+.ic{background:none;border:0;width:34px;height:34px;display:grid;place-items:center;border-radius:50%;opacity:.8}
+.ic:hover{opacity:1}.ic svg{width:17px;height:17px;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round}
+#lang{background:none;border:0;font-size:13px;opacity:.8;padding:4px;border-radius:6px}
+#lang option{color:#000}
+.sign{background:none;color:var(--ink);border:0;font-size:13px;padding:6px 10px;opacity:.8;transition:opacity .2s}
+.sign:hover{opacity:1}
+.sign.me{width:28px;height:28px;padding:0;font-weight:600;opacity:1;border-radius:50%;background:var(--ink);color:var(--bg)}
+.burger{display:none;background:none;border:0;width:34px;height:34px;margin-left:auto;position:relative}
+.burger span{position:absolute;left:9px;right:9px;height:1.5px;background:var(--ink);transition:transform .25s,top .25s}
+.burger span:first-child{top:13px}.burger span:last-child{top:20px}
+.open .burger span:first-child{top:16px;transform:rotate(45deg)}.open .burger span:last-child{top:16px;transform:rotate(-45deg)}
+#sbar{position:fixed;top:84px;left:0;right:0;z-index:49;display:flex;justify-content:center;padding:0 14px;pointer-events:none;visibility:hidden;opacity:0;transform:translateY(-14px) scale(.98);transition:opacity .28s ease,transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s linear .32s}
+#sbar.on{pointer-events:auto;visibility:visible;opacity:1;transform:none;transition:opacity .28s ease,transform .32s cubic-bezier(.2,.8,.2,1),visibility 0s}
+#sbar .sb-in{position:relative;width:100%;max-width:560px}
+#sbar .sb-in svg{z-index:1;position:absolute;left:18px;top:50%;width:18px;height:18px;margin-top:-9px;fill:none;stroke:var(--mute);stroke-width:2;stroke-linecap:round;pointer-events:none}
+#sbar input{display:block;width:100%;height:52px;border:1px solid var(--line);background:var(--navs);border-radius:26px;padding:0 20px 0 46px;font-size:17px;font-weight:500;box-shadow:0 12px 40px rgba(0,0,0,.22);outline:0;transition:border-color .2s,box-shadow .2s}
+#sbar input:focus{border-color:var(--ink)}
+#sbar input::placeholder{color:var(--mute);font-weight:400}
+#sbar input::-webkit-search-cancel-button{display:none}
+@media(max-width:833px){
+  .burger{display:block}.gn-r{margin-left:0}.logo{margin-right:0}
+  .links{display:none;position:absolute;top:76px;left:0;right:0;background:var(--navs);flex-direction:column;padding:8px 22px 24px;gap:0}
+  .open .links{display:flex}.links a{font-size:24px;font-weight:600;line-height:1;padding:16px 0;opacity:1;border-bottom:1px solid var(--line)}
+}
+main{padding-top:76px;min-height:72vh}
+.sec{max-width:1800px;margin:0 auto;padding:48px clamp(22px,3vw,48px) 0}
+.sec>h2{font-size:clamp(24px,3vw,32px);line-height:1.15;margin-bottom:18px}
+.narrow{max-width:860px}
+
+/* buttons (Apple pills) */
+.btn{display:inline-block;padding:10px 20px;border-radius:10px;font-size:15px;font-weight:500;line-height:1.2;border:1px solid transparent;background:none;transition:background .2s,color .2s,transform .25s cubic-bezier(.34,1.56,.64,1),box-shadow .25s}
+.fill{background:var(--blue);color:var(--bg)}.fill:hover{background:var(--blueh)}
+.line{border-color:var(--blue);color:var(--blue)}.line:hover{background:var(--blue);color:var(--bg)}
+.btn:hover{transform:translateY(-2px)}.fill:hover{box-shadow:0 8px 20px rgba(0,0,0,.3)}.line:hover{box-shadow:0 8px 20px rgba(0,0,0,.25)}.btn:active{transform:translateY(0) scale(.96);box-shadow:none}
+.btns{display:flex;gap:16px;justify-content:center;flex-wrap:wrap}
+
+/* landing (Netflix structure) */
+.landing{position:relative;margin-top:-48px;min-height:min(76vh,600px);display:flex;align-items:center;justify-content:center;text-align:center;color:#fff;padding:110px 22px 48px;background:linear-gradient(rgba(0,0,0,.45),rgba(0,0,0,.25) 50%,var(--bg)),var(--img) center/cover #111;--fb:rgba(255,255,255,.12);--fc:#fff;--fl:rgba(255,255,255,.6)}
+.landing h1{font-size:clamp(36px,7vw,72px);line-height:1.05;max-width:860px;margin:0 auto 14px}
+.landing p.sub{font-size:clamp(19px,2.4vw,24px);line-height:1.3;max-width:640px;margin:0 auto 6px;color:#e8e8ed}
+.ctap{margin:22px auto 0;max-width:640px;font-size:17px}
+.cta{display:flex;gap:12px;max-width:640px;margin:14px auto 0;align-items:flex-start}
+.fldw{flex:1;text-align:left}
+.fld{position:relative}
+.fld input{width:100%;height:52px;padding:22px 14px 6px;border-radius:12px;border:1px solid var(--fl);background:var(--fb);color:var(--fc);font-size:17px;outline:0;backdrop-filter:blur(10px)}
+.fld input:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(41,151,255,.35)}
+.fld label{position:absolute;left:16px;top:16px;color:var(--fl);font-size:17px;pointer-events:none;transition:all .15s}
+.fld input:focus+label,.fld input:not(:placeholder-shown)+label{top:7px;font-size:12px}
+.err{color:#ff6961;font-size:13px;margin-top:6px}
+.cta .btn{height:52px;padding:0 24px;font-size:17px}
+@media(max-width:640px){.cta{flex-direction:column;align-items:stretch}}
+.ctaS{--fb:var(--bg2);--fc:var(--ink);--fl:var(--mute);text-align:center;padding-bottom:56px}
+
+/* rails + cards */
+.rail{position:relative;margin:0 calc(-1*clamp(22px,3vw,48px))}
+.scroller{scroll-padding:0 clamp(22px,3vw,48px);display:flex;gap:16px;overflow-x:auto;scroll-snap-type:x proximity;padding:4px clamp(22px,3vw,48px) 14px;scrollbar-width:none}
+.scroller::-webkit-scrollbar{display:none}
+.rail>button{position:absolute;top:calc(50% - 40px);z-index:3;width:44px;height:44px;border-radius:50%;border:0;background:var(--nav);backdrop-filter:blur(14px);font-size:24px;box-shadow:0 2px 12px rgba(0,0,0,.25);display:grid;place-items:center}
+.rail>.l{left:14px}.rail>.r{right:14px}
+@media(hover:none){.rail>button{display:none}}
+.card{position:relative;flex:0 0 172px;width:172px;min-width:0;max-width:100%;scroll-snap-align:start;display:block;-webkit-tap-highlight-color:transparent}
+.scroller{align-items:flex-start}.grid .card{width:auto}
+.card .im{position:relative;border-radius:18px;overflow:hidden;background:var(--bg2);transition:transform .3s cubic-bezier(.25,.1,.25,1),box-shadow .3s}
+.card:hover .im{transform:scale(1.04);box-shadow:0 12px 30px rgba(0,0,0,.28)}
+.card img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
+.rt{position:absolute;top:8px;left:8px;padding:2px 9px;border-radius:980px;font-size:12px;font-weight:600;font-style:normal;background:rgba(0,0,0,.6);backdrop-filter:blur(8px);color:#fff}
+.rt.hi{color:#5fe39a}.rt.mid{color:#ffd45e}.rt.lo{color:#ff8f87}
+.card b{display:block;font-size:14px;font-weight:600;margin-top:9px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.card span.y{font-size:12px;color:var(--mute)}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(172px,1fr));gap:26px 16px}
+@media(max-width:640px){.grid{grid-template-columns:repeat(3,minmax(0,1fr));gap:16px 8px}.grid .card b{font-size:12px;margin-top:6px}.grid .card span.y{font-size:11px}.grid .card .im{border-radius:10px}}
+.t10{flex:0 0 auto;display:flex;align-items:flex-end;scroll-snap-align:start}
+.t10 i{font:800 150px/.78 -apple-system,"SF Pro Display",Arial,sans-serif;font-style:normal;color:transparent;-webkit-text-stroke:2px var(--line);margin-right:-26px;position:relative;z-index:1;letter-spacing:-.08em}
+.t10 .im{width:150px;border-radius:16px;overflow:hidden;transition:transform .3s}
+.t10 img{width:100%;aspect-ratio:2/3;object-fit:cover;display:block}
+.t10:hover .im{transform:scale(1.05)}
+
+/* promo tiles (Apple) */
+.tiles{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:48px 12px 0}
+.tile{position:relative;min-height:470px;border-radius:28px;overflow:hidden;color:#fff;text-align:center;padding:56px 24px 0;background:linear-gradient(180deg,rgba(0,0,0,.6),rgba(0,0,0,0) 58%),var(--img) center top/cover #111}
+.tile.big{grid-column:1/-1;min-height:min(74vh,630px)}
+.tile h2{font-size:clamp(30px,4.4vw,56px);line-height:1.07}
+.tile p{font-size:clamp(17px,2vw,24px);line-height:1.25;margin:8px auto 18px;max-width:560px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.tile .line,.dhero .line{border-color:rgba(255,255,255,.9);color:#fff}.tile .line:hover,.dhero .line:hover{background:#fff;color:#000}.dhero .fill{background:#fff;color:#000}
+@media(max-width:833px){.tiles{grid-template-columns:1fr}.tile{min-height:400px}}
+
+/* reasons (Netflix cards, icon bottom-right) */
+.reasons{display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:12px}
+.reason{position:relative;background:var(--bg2);border-radius:28px;padding:26px 24px 100px}
+.reason h3{font-size:22px;line-height:1.2;margin-bottom:8px}.reason p{color:var(--mute);font-size:16px;line-height:1.4}
+.reason svg{position:absolute;right:22px;bottom:22px;width:58px;height:58px;fill:none;stroke:var(--blue);stroke-width:1.4;stroke-linecap:round;stroke-linejoin:round}
+
+/* faq */
+details{background:var(--bg2);border-radius:18px;margin-bottom:8px}
+summary{list-style:none;display:flex;justify-content:space-between;align-items:center;gap:16px;padding:22px 24px;font-size:21px;font-weight:600;cursor:pointer}
+summary::-webkit-details-marker{display:none}
+summary::after{content:"+";font-size:34px;font-weight:300;line-height:1;transition:transform .25s;color:var(--blue)}
+details[open] summary::after{transform:rotate(45deg)}
+details p{padding:0 24px 24px;color:var(--mute);max-width:720px}
+
+/* catalog */
+.page{max-width:1800px;margin:0 auto;padding:44px clamp(22px,3vw,48px) 0}
+.page>h1{font-size:clamp(34px,5vw,56px);line-height:1.07;margin-bottom:18px}
+.bar{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:18px}
+select.f{background:var(--bg2);border:0;border-radius:10px;padding:9px 16px;font-size:15px}
+.chips{display:flex;gap:8px;overflow-x:auto;padding-bottom:6px;margin-bottom:26px;scrollbar-width:none}
+.chips::-webkit-scrollbar{display:none}
+.chip{flex:none;border:0;background:var(--bg2);border-radius:10px;padding:7px 14px;font-size:14px;font-weight:500;transition:background .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}.chip:hover{background:var(--line);transform:translateY(-1px)}.chip:active{transform:scale(.95)}
+.chip.on{background:var(--ink);color:var(--bg)}
+.more{display:block;margin:36px auto 0}
+#msg{text-align:center;color:var(--mute);padding:40px 22px;line-height:1.7}
+
+/* detail */
+.dhero{position:relative;margin:60px 12px 0;border-radius:28px;overflow:hidden;color:#fff;background:linear-gradient(90deg,rgba(0,0,0,.85),rgba(0,0,0,.35)),var(--img) center/cover #111;padding:56px 40px}
+.dhero .in{display:flex;gap:36px;flex-wrap:wrap;max-width:1100px;margin:0 auto}
+.dhero img.p{width:250px;max-width:100%;border-radius:20px;align-self:flex-start;box-shadow:0 20px 50px rgba(0,0,0,.6)}
+.dtxt{flex:1;min-width:260px}
+.dtxt h1{font-size:clamp(32px,5vw,56px);line-height:1.06}
+.tag{color:#c7c7cc;margin:8px 0 14px;font-size:19px}
+.facts{display:flex;flex-wrap:wrap;gap:8px;margin:14px 0}
+.facts span{padding:4px 14px;border-radius:980px;background:rgba(255,255,255,.16);backdrop-filter:blur(10px);font-size:14px}
+.dtxt .ov{max-width:660px;color:#ececf1}
+.dhero .btns{justify-content:flex-start;margin-top:22px}
+
+.prov a{display:inline-block;margin:0 8px 8px 0;padding:8px 16px;border-radius:10px;font-weight:500;background:var(--bg2);transition:background .2s,color .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}.prov a:hover{transform:translateY(-2px)}
+.prov a:hover{background:var(--blue);color:var(--bg)}
+.cast{display:flex;gap:16px;overflow-x:auto;padding-bottom:8px;scrollbar-width:none}
+.person{flex:0 0 104px;text-align:center;font-size:13px;line-height:1.3}
+.person img{width:104px;height:104px;border-radius:50%;object-fit:cover;background:var(--bg2);display:block;margin-bottom:8px}
+.person span{color:var(--mute);display:block;font-size:12px}
+@media(max-width:640px){.dhero{padding:32px 20px;margin:56px 8px 0}}
+
+/* dialogs */
+dialog{border:0;background:none;color:var(--ink);margin:auto;width:min(980px,94vw)}
+dialog::backdrop{background:rgba(0,0,0,.72);backdrop-filter:blur(8px)}
+dialog iframe{width:100%;aspect-ratio:16/9;border:0;border-radius:20px;background:#000}
+.xb{display:block;margin:0 0 10px auto;background:rgba(255,255,255,.2);color:#fff;border:0;border-radius:10px;padding:6px 18px;backdrop-filter:blur(10px)}
+#auth{width:min(420px,92vw)}
+.authbox{background:var(--navs);border-radius:28px;padding:32px 28px;text-align:center;--fb:var(--bg2);--fc:var(--ink);--fl:var(--mute)}
+.authbox h2{font-size:28px;margin-bottom:6px}.authbox p{color:var(--mute);font-size:15px;margin-bottom:16px}
+.authbox .cta{flex-direction:column;align-items:stretch}
+
+/* footer (Apple + Netflix link grid) */
+footer{background:var(--bg2);color:var(--mute);font-size:12px;line-height:1.5;padding:22px 22px 30px}
+.fin{max-width:1024px;margin:0 auto}
+.fin .note{padding:6px 0 14px;border-bottom:1px solid var(--line);margin-bottom:16px}
+.fcols{display:grid;grid-template-columns:repeat(4,1fr);gap:8px 20px;padding-bottom:16px;border-bottom:1px solid var(--line);margin-bottom:14px}
+.fcols a,.fcols button{background:none;border:0;text-align:left;padding:3px 0;color:var(--mute);text-decoration:underline;font-size:12px;width:fit-content}
+.fcols a:hover,.fcols button:hover{color:var(--ink)}
+.fbot{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;align-items:center}
+.fbot select{background:var(--bg);border:1px solid var(--line);border-radius:8px;padding:6px 10px;font-size:12px}
+@media(max-width:700px){.fcols{grid-template-columns:1fr 1fr}.t10 i{font-size:120px}.t10 .im{width:120px}}
+@media(prefers-reduced-motion:reduce){*{transition:none!important;scroll-behavior:auto!important}}
+.authbox form.af{display:flex;flex-direction:column;gap:12px;text-align:left}.authbox form.af .btn{height:48px}.authbox form.af .err{margin:0;min-height:0}
+
+/* player+series+history */
+.pp-toast{margin-top:10px;font-size:14px;padding:8px 12px;border-radius:10px;background:var(--bg2);display:none}.pp-toast.on{display:block}
+.pp-over{position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:12px;color:#fff;text-align:center;padding:16px}
+.pp-over .btn{min-width:200px}
+.btn.sm{padding:6px 14px;font-size:14px;min-height:0;height:auto}
+.eps{display:flex;flex-direction:column;gap:10px}
+.ep{display:grid;grid-template-columns:160px minmax(0,1fr) auto;gap:14px;align-items:center;background:var(--bg2);border-radius:14px;padding:10px}
+.ep img,.ep .ph0{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:10px;background:var(--line)}
+.ep b{display:block;font-size:16px}.ep small{color:var(--mute);font-size:13px}.ep p{color:var(--mute);font-size:13px;margin-top:4px;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}
+.ep .nosrc{opacity:.55}
+@media(max-width:700px){.ep{grid-template-columns:110px minmax(0,1fr)}.ep img,.ep .ph0{width:110px}.ep .btn{grid-column:1/-1}}
+.hist{display:flex;flex-direction:column;gap:10px;margin-top:10px;text-align:left}
+.hi{display:grid;grid-template-columns:56px minmax(0,1fr) auto;gap:12px;align-items:center;background:var(--bg2);border-radius:14px;padding:10px}
+.hi img{width:56px;aspect-ratio:2/3;object-fit:cover;border-radius:8px}.hi b{display:block}.hi small{color:var(--mute)}
+.hi .bar2{height:4px;border-radius:2px;background:var(--line);margin-top:6px;overflow:hidden}.hi .bar2 i{display:block;height:100%;background:var(--ink)}
+.hi .acts{display:flex;gap:6px;flex-wrap:wrap;justify-content:flex-end}
+@media(max-width:560px){.hi{grid-template-columns:56px minmax(0,1fr)}.hi .acts{grid-column:1/-1;justify-content:flex-start}}
+/* admin */
+.adm{max-width:1024px;margin:0 auto;padding:96px 22px 60px}
+.adm h1{margin-bottom:16px}
+.adm .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:22px}
+.adm .stats{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:12px}
+.adm .stat{background:var(--bg2);border-radius:18px;padding:18px}.adm .stat b{display:block;font-size:28px}.adm .stat span{color:var(--mute);font-size:13px}
+.adm .box{background:var(--bg2);border-radius:18px;padding:18px;margin-bottom:16px}
+.adm .row{display:flex;gap:10px;align-items:center;flex-wrap:wrap;padding:10px 0;border-top:1px solid var(--line)}
+.adm .row:first-child{border-top:0}.adm .row .grow{flex:1;min-width:180px;overflow-wrap:anywhere}.adm .row small{display:block;color:var(--mute)}
+.adm form.sf{display:grid;grid-template-columns:repeat(auto-fit,minmax(180px,1fr));gap:10px;align-items:end}
+.adm .ai{width:100%}.adm .sm{padding:6px 14px;font-size:14px}
+.adm .ok{color:var(--ink)}.adm .bad{color:#d33}
+@keyframes rise{from{opacity:0;transform:translateY(14px)}to{opacity:1;transform:none}}
+@keyframes sh{from{background-position:100% 0}to{background-position:-100% 0}}
+#app>*{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+.grid .card{animation:rise .5s cubic-bezier(.2,.7,.2,1) both}
+img{opacity:0;transition:opacity .45s ease}img.ld{opacity:1}
+.js .rv{opacity:0;transform:translateY(22px);transition:opacity .7s cubic-bezier(.2,.7,.2,1),transform .7s cubic-bezier(.2,.7,.2,1)}
+.js .rv.in{opacity:1;transform:none}
+.reasons .reason:nth-child(2){transition-delay:.08s}.reasons .reason:nth-child(3){transition-delay:.16s}.reasons .reason:nth-child(4){transition-delay:.24s}
+.sk{background:linear-gradient(90deg,var(--bg2) 35%,var(--line) 50%,var(--bg2) 65%);background-size:200% 100%;animation:sh 1.5s linear infinite;border-radius:14px}
+.sk.h{height:46px;width:min(320px,70%);margin-bottom:26px}.sk.c{aspect-ratio:2/3;border-radius:18px}
+.ph{width:104px;height:104px;border-radius:50%;background:var(--bg2);display:grid;place-items:center;font-size:34px;font-weight:600;color:var(--mute);margin-bottom:8px}
+.card:active .im{transform:scale(.98)}
+@media(prefers-reduced-motion:reduce){*{animation:none!important}.js .rv{opacity:1;transform:none}}
+
+.landing{background:linear-gradient(rgba(0,0,0,.62),rgba(0,0,0,.48) 55%,var(--bg)),var(--img) center/cover #111}
+.landing h1{font-size:clamp(34px,6.4vw,64px)}
+.landing p.sub{font-size:clamp(17px,2.2vw,22px);color:#e5e5ea}
+.landing .line{border-color:rgba(255,255,255,.9);color:#fff}.landing .line:hover{background:#fff;color:#000}
+.btn.big{padding:13px 26px;font-size:17px}
+#auth{width:min(400px,92vw);margin:max(9vh,56px) auto auto}
+.authbox{position:relative;border-radius:22px;padding:30px 24px 22px;box-shadow:0 24px 60px rgba(0,0,0,.45);text-align:left}
+.authbox h2{font-size:26px;margin:0 0 4px}
+.authbox p.sub2{color:var(--mute);font-size:15px;margin:0 0 18px}
+.authbox form.af{gap:10px}
+.ai{width:100%;height:48px;padding:0 14px;border-radius:10px;border:1px solid var(--line);background:var(--bg);color:var(--ink);font-size:16px;outline:0;transition:border-color .2s,box-shadow .2s}
+.ai:focus{border-color:var(--blue);box-shadow:0 0 0 3px rgba(128,128,128,.3)}.ai::placeholder{color:var(--mute)}
+.authbox .btn{width:100%;height:48px;font-size:16px}
+.authbox .btn.alt{background:none;color:var(--blue);height:auto;padding:8px;font-weight:400;font-size:14px}
+.authbox .btn.alt:hover{transform:none;box-shadow:none}
+.xc{position:absolute;top:14px;right:14px;width:30px;height:30px;border:0;border-radius:50%;background:var(--bg2);color:var(--mute);font-size:13px}
+
+.sec.first{padding-top:22px}
+.rh{display:flex;justify-content:space-between;align-items:baseline;gap:12px;margin-bottom:14px}
+.rh h2{font-size:clamp(22px,2.6vw,28px);line-height:1.15;margin:0}
+.rh a{color:var(--mute);font-size:16px;font-weight:500}.rh a:hover{color:var(--ink)}
+.card.lg{flex-basis:min(300px,72vw);width:min(300px,72vw)}.card.lg b{font-size:16px;margin-top:10px}.card.lg span.y{font-size:13px}
+.rt{border-radius:5px;padding:2px 7px;font-size:13px;font-weight:700;color:#fff!important;backdrop-filter:none;background:#2f8f3a}
+.rt.mid{background:#6e6e73}.rt.lo{background:#c0392b}
+.t10 i{padding:0 .12em .06em 0;margin-right:-.3em;background:linear-gradient(180deg,var(--ink),var(--mute));-webkit-background-clip:text;background-clip:text;-webkit-text-stroke:0;font-weight:800}
+.authpg{max-width:380px;margin:0 auto;padding:64px 22px 0}
+.authpg h1{font-size:34px;line-height:1.1;margin-bottom:6px}.authpg .sub2{color:var(--mute);margin-bottom:22px}
+.authpg .af{display:flex;flex-direction:column;gap:10px}
+.authpg .err{margin:0;color:#ff6961;font-size:14px}
+.authpg .btn{width:100%;height:48px;font-size:16px}
+.authpg .btn.alt{background:none;color:var(--blue);height:auto;padding:8px;font-weight:400;font-size:14px}.authpg .btn.alt:hover{transform:none;box-shadow:none}
+
+.page .rh{margin-bottom:22px}.page .rh h1{font-size:clamp(28px,4.4vw,44px);line-height:1.07;margin:0}
+.rh a.fbtn{flex:none;padding:8px 14px;border-radius:10px;background:var(--bg2);color:var(--ink);font-size:15px;font-weight:500;transition:background .2s}.rh a.fbtn:hover{background:var(--line)}
+
+.page{padding-bottom:64px}
+.morebtn{display:block;max-width:420px;margin:44px auto 0;padding:15px 20px;border-radius:12px;background:var(--bg2);color:var(--ink);text-align:center;font-size:16px;font-weight:500;transition:background .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.morebtn:hover{background:var(--line);transform:translateY(-2px)}.morebtn:active{transform:scale(.98)}
+.authpg .af{gap:18px}
+.lb{display:flex;flex-direction:column;gap:7px;font-size:14px;font-weight:500;color:var(--ink)}
+.hint{font-size:13px;color:var(--mute);margin:-8px 0 0}
+.authpg .err:empty{display:none}
+
+.pp{display:grid;grid-template-columns:minmax(0,1fr) 280px;gap:20px;align-items:start;max-width:980px;margin:0 auto}
+.pp.one{max-width:820px;margin:0 auto}
+.pp.one{grid-template-columns:minmax(0,1fr)}.pp.one .pp-list{display:none}
+@media(max-width:860px){.pp{grid-template-columns:1fr}}
+.pp-screen{position:relative;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden}
+.pp-screen>video,.pp-screen>iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.pp-start{position:absolute;inset:0;width:100%;border:0;background:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),var(--img) center/cover #111;display:grid;place-items:center}
+.pp-start i{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.92);display:grid;place-items:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.pp-start:hover i{transform:scale(1.08)}.pp-start svg{width:28px;height:28px;fill:#000;margin-left:3px}
+.pp-now{margin-top:12px}.pp-now b{display:block;font-size:18px;font-weight:600}.pp-now span{color:var(--mute);font-size:14px}
+.pp-list{display:flex;flex-direction:column;gap:8px}
+.pp-src{display:flex;align-items:center;gap:12px;width:100%;text-align:left;border:1px solid transparent;background:var(--bg2);border-radius:12px;padding:12px 14px;transition:background .2s,transform .25s cubic-bezier(.34,1.56,.64,1)}
+.pp-src:hover{background:var(--line);transform:translateY(-1px)}.pp-src:active{transform:scale(.98)}
+.pp-src[aria-current=true]{border-color:var(--ink)}
+.pp-ico{flex:none;width:34px;height:34px;border-radius:9px;background:var(--bg);display:grid;place-items:center}.pp-ico svg{width:16px;height:16px;fill:currentColor}
+.pp-src b{display:block;font-size:15px;font-weight:600;line-height:1.25}.pp-src small{color:var(--mute);font-size:13px}
+.pp-q{margin-left:auto;flex:none;font-size:12px;font-weight:600;padding:2px 8px;border-radius:6px;background:var(--bg)}
+
+.pp-screen .plyr{width:100%;height:100%;border-radius:16px;font-family:inherit;--plyr-color-main:#fff;--plyr-video-control-color:#fff;--plyr-video-control-color-hover:#000;--plyr-video-control-background-hover:#fff;--plyr-control-radius:10px;--plyr-control-spacing:12px;--plyr-range-thumb-height:14px;--plyr-video-controls-background:linear-gradient(transparent,rgba(0,0,0,.8));--plyr-tooltip-background:rgba(29,29,31,.95);--plyr-tooltip-color:#fff;--plyr-menu-background:rgba(29,29,31,.96);--plyr-menu-color:#f5f5f7;--plyr-font-size-base:14px}
+.pp-screen .plyr__video-wrapper,.pp-screen .plyr video{height:100%;background:#000}.pp-screen .plyr video{object-fit:contain}
+.pp-screen .plyr__control--overlaid{background:rgba(255,255,255,.92);color:#000;padding:22px;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.pp-screen .plyr__control--overlaid:hover{background:#fff;color:#000;transform:scale(1.08)}
+</style>
+<link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap&subset=cyrillic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
+</head>
+<body>
+<header id="gn"><a class="topban" href="#/" aria-label="watch. — на главную"><span>watch<i>.</i></span><em>фильмы и сериалы</em></a>
+  <div class="gn-in">
+    <nav class="links" id="links" aria-label="Основная навигация">
+      <a href="#/" data-r="/" data-i="home">Главная</a>
+      <a href="#/movies" data-r="/movies" data-i="movies">Фильмы</a>
+      <a href="#/tv" data-r="/tv" data-i="tv">Сериалы</a>
+      <a href="#/favs" data-r="/favs" data-i="mine">Моё</a>
+      <a href="#/admin" data-r="/admin" id="adminlink" hidden>Админ</a>
+    </nav>
+    <div class="gn-r">
+      <button class="ic" id="sbtn" aria-label="Поиск"><svg viewBox="0 0 24 24"><circle cx="10.5" cy="10.5" r="6.5"/><path d="M15.5 15.5L21 21"/></svg></button>
+      <select id="lang" aria-label="Язык"><option value="ru">Русский</option><option value="en">English</option></select>
+      <button class="sign" id="sign" data-i="signin">Войти</button>
+    </div>
+    <button class="burger" id="burger" aria-label="Меню"><span></span><span></span></button>
+  </div>
+  <div id="sbar"><div class="sb-in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" enterkeyhint="search" data-ip="searchph" placeholder="Найти фильм или сериал" aria-label="Поиск" autocomplete="off"></div></div>
+</header>
+
+<main id="app"></main>
+
+<footer>
+  <div class="fin">
+    <p class="note" data-i="fnote">Данные и изображения предоставлены TMDB. watch. не хранит и не раздаёт видео: здесь трейлеры и ссылки на легальные сервисы.</p>
+    <div class="fcols">
+      <a href="#/" data-i="home">Главная</a>
+      <a href="#/movies" data-i="movies">Фильмы</a>
+      <a href="#/tv" data-i="tv">Сериалы</a>
+      <a href="#/favs" data-i="mine">Моё</a>
+      <button id="fsearch" data-i="search">Поиск</button>
+      <a href="https://www.themoviedb.org" target="_blank" rel="noopener" data-i="src">Источник данных: TMDB</a>
+      <a href="https://www.justwatch.com" target="_blank" rel="noopener" data-i="jw">Где смотреть: JustWatch</a>
+    </div>
+    <div class="fbot"><span>© watch.</span>
+      <select id="lang2" aria-label="Язык"><option value="ru">Русский</option><option value="en">English</option></select></div>
+  </div>
+</footer>
+
+<dialog id="dlg"><button class="xb" id="dx">✕</button><div id="dbody"></div></dialog>
+
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.45.4/dist/umd/supabase.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
+<script>
+/* Supabase проекта kadr (публичный publishable-ключ; доступ ограничен RLS) */
+const SB_URL = "https://tkojemckjyurkbmrgolv.supabase.co";
+const SB_KEY = "sb_publishable_9g-hnT5s7115OwgETFAavA_QvptchpZ";
+const sb = supabase.createClient(SB_URL, SB_KEY);
+const IMG = "https://image.tmdb.org/t/p/";
+const im = (sz, p) => !p ? "" : /^https?:/.test(p) ? p : IMG + sz + p;
+const $ = (s, r = document) => r.querySelector(s);
+const $$ = (s, r = document) => [...r.querySelectorAll(s)];
+const esc = s => String(s ?? "").replace(/[&<>"]/g, c => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+const NOIMG = "data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='2' height='3'%3E%3Crect width='2' height='3' fill='%23999' fill-opacity='.2'/%3E%3C/svg%3E";
+const ls = { get: k => { try { return localStorage.getItem(k); } catch { return null; } }, set: (k, v) => { try { localStorage.setItem(k, v); } catch {} } };
+
+/* ---------- i18n ---------- */
+const D = {
+ru: { home: "Главная", movies: "Фильмы", tv: "Сериалы", mine: "Моё", signin: "Войти", signout: "Выйти", search: "Поиск", searchph: "Найти фильм или сериал",
+  hero_h: "Фильмы, сериалы и многое другое", hero_p: "Трейлеры, рейтинги и ссылки на легальные сервисы — в одном месте и бесплатно.",
+  cta_p: "Готовы смотреть? Введите адрес электронной почты, чтобы создать профиль.", email: "Адрес электронной почты", start: "Начать смотреть", bad: "Введите действительный адрес электронной почты.",
+  trending: "В тренде", reasons: "Другие причины остаться", popular: "Популярные фильмы", series: "Сериалы, которые смотрят", now: "В кино", top: "Лучшие за всё время", soon: "Скоро выйдут",
+  r1: "Трейлеры в один клик", r1p: "Официальные трейлеры прямо на странице фильма.", r2: "Где смотреть легально", r2p: "Показываем сервисы, где фильм доступен в вашем регионе.",
+  r3: "Свой список", r3p: "Сохраняйте фильмы и сериалы — список доступен на всех ваших устройствах.", r4: "Любой экран", r4p: "Сайт работает на телефоне, планшете, ноутбуке и телевизоре.",
+  faq: "Распространённые вопросы",
+  q1: "Что такое watch.?", a1: "Каталог фильмов и сериалов с рейтингами, актёрами, трейлерами и ссылками на легальные сервисы. watch. не хранит и не раздаёт фильмы.",
+  q2: "Сколько это стоит?", a2: "Ничего. Каталог бесплатный.", q3: "Можно ли смотреть фильмы целиком?", a3: "Здесь — трейлеры. Полные фильмы смотрите в легальных сервисах: ссылки есть на странице каждого фильма.",
+  q4: "Откуда берутся данные?", a4: "Из открытой базы TMDB: описания, постеры, рейтинги, актёры и трейлеры. Каталог хранится в нашей базе и обновляется автоматически.", q5: "Где хранится мой список?", a5: "В вашем аккаунте. Войдите с другого устройства — список будет на месте.",
+  q6: "Как сменить язык?", a6: "Выберите язык вверху страницы или внизу, в подвале.",
+  fnote: "Данные и изображения предоставлены TMDB. watch. не хранит и не раздаёт видео: здесь трейлеры и ссылки на легальные сервисы.", src: "Источник данных: TMDB", jw: "Где смотреть: JustWatch",
+  more: "Подробнее", trailer: "Трейлер", wtrailer: "Смотреть трейлер", add: "+ В список", inlist: "✓ В списке", where: "Где посмотреть", cast: "В ролях", similar: "Похожее",
+  nowhere: "Нет данных о легальных сервисах для вашего региона.", nodesc: "Описание пока отсутствует.", dir: "Режиссёр", min: "мин",
+  popsort: "Популярные", ratsort: "По рейтингу", newsort: "Новые", anyyear: "Любой год", allg: "Все жанры", showmore: "Показать ещё", loading: "Загрузка…",
+  empty: "Ничего не нашлось. Попробуйте убрать фильтры.", none: "Ничего не найдено. Проверьте название.", searchfor: "Поиск", favempty: "Здесь появятся фильмы и сериалы, которые вы добавите кнопкой «В список».",
+  needlogin: "Войдите, чтобы увидеть свой список.", loaderr: "Ошибка загрузки",
+  syncing: "Первый запуск: загружаем каталог из TMDB. Это займёт около минуты…", syncerr: "Не удалось загрузить каталог", nodata: "Каталог временно недоступен. Загляните позже.",
+  auth_in: "Войти", auth_up: "Создать аккаунт", pass: "Пароль (от 6 символов)", noacc: "Нет аккаунта? Создать", haveacc: "Уже есть аккаунт? Войти",
+  badlogin: "Неверная почта или пароль.", confirm: "Мы отправили письмо — подтвердите адрес и войдите.", shortpass: "Пароль — минимум 6 символов.", me: "Вы вошли как", prof: "Профиль" },
+en: { home: "Home", movies: "Movies", tv: "TV Shows", mine: "My List", signin: "Sign in", signout: "Sign out", search: "Search", searchph: "Search movies and shows",
+  hero_h: "Movies, shows and more", hero_p: "Trailers, ratings and links to legal streaming services — all in one place, free.",
+  cta_p: "Ready to watch? Enter your email to create a profile.", email: "Email address", start: "Get started", bad: "Please enter a valid email address.",
+  trending: "Trending now", reasons: "More reasons to stay", popular: "Popular movies", series: "TV shows people watch", now: "In theaters", top: "All-time best", soon: "Coming soon",
+  r1: "Trailers in one click", r1p: "Official trailers right on the movie page.", r2: "Where to watch legally", r2p: "We show services that carry the title in your region.",
+  r3: "Your own list", r3p: "Save movies and shows — your list follows you across devices.", r4: "Any screen", r4p: "Works on phone, tablet, laptop and TV.",
+  faq: "Frequently asked questions",
+  q1: "What is watch.?", a1: "A catalog of movies and shows with ratings, cast, trailers and links to legal services. watch. does not store or stream films.",
+  q2: "How much does it cost?", a2: "Nothing. The catalog is free.", q3: "Can I watch full movies here?", a3: "Only trailers. Watch full titles on legal services — links are on every movie page.",
+  q4: "Where does the data come from?", a4: "From the open TMDB database: descriptions, posters, ratings, cast and trailers. The catalog is stored in our database and refreshed automatically.", q5: "Where is my list stored?", a5: "In your account. Sign in on another device and your list is there.",
+  q6: "How do I change the language?", a6: "Use the language selector at the top or in the footer.",
+  fnote: "Data and images by TMDB. watch. does not store or stream video: only trailers and links to legal services.", src: "Data source: TMDB", jw: "Where to watch: JustWatch",
+  more: "Learn more", trailer: "Trailer", wtrailer: "Watch trailer", add: "+ My List", inlist: "✓ In My List", where: "Where to watch", cast: "Cast", similar: "More like this",
+  nowhere: "No legal streaming data for your region.", nodesc: "No description yet.", dir: "Director", min: "min",
+  popsort: "Popular", ratsort: "Top rated", newsort: "Newest", anyyear: "Any year", allg: "All genres", showmore: "Show more", loading: "Loading…",
+  empty: "Nothing found. Try removing filters.", none: "Nothing found. Check the title.", searchfor: "Search", favempty: "Movies and shows you add with “+ My List” will appear here.",
+  needlogin: "Sign in to see your list.", loaderr: "Loading error",
+  syncing: "First run: loading the catalog from TMDB. About a minute…", syncerr: "Could not load the catalog", nodata: "The catalog is temporarily unavailable. Please check back later.",
+  auth_in: "Sign in", auth_up: "Create account", pass: "Password (6+ characters)", noacc: "No account? Create one", haveacc: "Have an account? Sign in",
+  badlogin: "Wrong email or password.", confirm: "We sent you an email — confirm your address, then sign in.", shortpass: "Password must be at least 6 characters.", me: "Signed in as", prof: "Profile" } };
+Object.assign(D.ru,{watchnow:"Смотреть фильмы",cta_p2:"Создайте аккаунт, чтобы сохранять фильмы и сериалы в свой список.",authsub:"Список «Моё» будет на всех ваших устройствах."});
+Object.assign(D.en,{watchnow:"Browse movies",cta_p2:"Create an account to save movies and shows to your list.",authsub:"Your list will follow you across devices."});
+Object.assign(D.ru,{trending:"Смотрят сейчас",all:"Все",top10:"Топ-10 фильмов"});
+Object.assign(D.en,{trending:"Watching now",all:"All",top10:"Top 10 movies"});
+Object.assign(D.ru,{filters:"Фильтры",allmovies:"Все фильмы и фильтры",alltv:"Все сериалы и фильтры"});
+Object.assign(D.en,{filters:"Filters",allmovies:"All movies and filters",alltv:"All shows and filters"});
+Object.assign(D.ru,{email_l:"Электронная почта",pass_l:"Пароль",passhint:"Не менее 6 символов",noacc:"Нет аккаунта? Зарегистрироваться"});
+Object.assign(D.en,{email_l:"Email",pass_l:"Password",passhint:"At least 6 characters",noacc:"No account? Sign up"});
+Object.assign(D.ru,{watchh:"Смотреть",watch:"Смотреть"});
+Object.assign(D.en,{watchh:"Watch",watch:"Watch"});
+let lang = ls.get("kadr_lang") || ((navigator.language || "ru").toLowerCase().startsWith("en") ? "en" : "ru");
+const t = k => (D[lang] && D[lang][k]) ?? D.ru[k] ?? k;
+function applyLang() {
+  document.documentElement.lang = lang;
+  $$("[data-i]").forEach(e => e.textContent = t(e.dataset.i));
+  $$("[data-ip]").forEach(e => e.placeholder = t(e.dataset.ip));
+  $("#lang").value = lang; $("#lang2").value = lang; updateSign();
+}
+
+/* ---------- data (Supabase) ---------- */
+const ok = r => { if (r.error) throw new Error(t("loaderr") + ": " + r.error.message); return r.data || []; };
+const today = () => new Date().toISOString().slice(0, 10);
+const daysAgo = n => new Date(Date.now() - n * 864e5).toISOString().slice(0, 10);
+const T = m => (lang === "ru" ? m.title_ru || m.title_en : m.title_en || m.title_ru) || m.original_title || "";
+const OV = m => (lang === "ru" ? m.overview_ru || m.overview_en : m.overview_en || m.overview_ru) || "";
+const GN = g => (lang === "ru" ? g.name_ru || g.name_en : g.name_en || g.name_ru) || "";
+const Y = m => (m.release_date || "").slice(0, 4);
+const cls = v => v >= 7 ? "hi" : v >= 5.5 ? "mid" : "lo";
+const num = v => Number(v) || 0;
+const base = type => sb.from("titles").select("*").eq("media_type", type).not("poster_path", "is", null);
+let me = null, isAdmin = false;
+
+/* ---------- blocks ---------- */
+function card(m, size) {
+  return `<a class="card${size === "lg" ? " lg" : ""}" href="#/${m.media_type}/${m.id}"><div class="im"><img loading="lazy" src="${m.poster_path ? im("w342", m.poster_path) : NOIMG}" alt="">
+    ${num(m.vote_average) ? `<i class="rt ${cls(num(m.vote_average))}">${num(m.vote_average).toFixed(1)}</i>` : ""}</div><b>${esc(T(m))}</b><span class="y">${Y(m)}</span></a>`;
+}
+const t10 = (m, n) => `<a class="t10" href="#/${m.media_type}/${m.id}" aria-label="${n}. ${esc(T(m))}"><i>${n}</i><div class="im"><img loading="lazy" src="${m.poster_path ? im("w342", m.poster_path) : NOIMG}" alt="${esc(T(m))}"></div></a>`;
+const rail = h => `<div class="rail"><button class="l" aria-label="←">‹</button><div class="scroller">${h}</div><button class="r" aria-label="→">›</button></div>`;
+const row = (title, items, href) => items.length ? `<section class="sec"><div class="rh"><h2>${esc(title)}</h2>${href ? `<a href="${href}">${t("all")}</a>` : ""}</div>${rail(items.map(m => card(m)).join(""))}</section>` : "";
+const cta = () => `<form class="cta" novalidate><div class="fldw"><div class="fld"><input type="email" name="e" placeholder=" " autocomplete="email" required><label>${t("email")}</label></div><p class="err" role="alert"></p></div>
+  <button class="btn fill" type="submit">${t("start")}</button></form>`;
+const tile = (m, big) => `<section class="tile${big ? " big" : ""}" style="--img:url(${im("w1280", m.backdrop_path)})"><h2>${esc(T(m))}</h2>
+  <p>${big && OV(m) ? esc(OV(m)) : "★ " + num(m.vote_average).toFixed(1) + " · " + Y(m)}</p>
+  <div class="btns"><a class="btn fill" href="#/movie/${m.id}">${t("more")}</a>${m.trailer_key ? `<button class="btn line" data-yt="${esc(m.trailer_key)}">${t("trailer")}</button>` : ""}</div></section>`;
+const ICONS = [`<circle cx="12" cy="12" r="10"/><path d="M10 8l6 4-6 4z"/>`, `<path d="M12 22s7-6.2 7-12a7 7 0 10-14 0c0 5.8 7 12 7 12z"/><circle cx="12" cy="10" r="2.5"/>`, `<path d="M6 3h12v18l-6-4-6 4z"/>`, `<rect x="3" y="4" width="18" height="12" rx="2"/><path d="M8 20h8M12 16v4"/>`];
+const skel = () => `<div class="page"><div class="sk h"></div><div class="grid">${'<div class="sk c"></div>'.repeat(12)}</div></div>`;
+function reveal() {
+  if (!("IntersectionObserver" in window)) return;
+  document.documentElement.classList.add("js");
+  const io = new IntersectionObserver(es => es.forEach(e => { if (e.isIntersecting) { e.target.classList.add("in"); io.unobserve(e.target); } }), { rootMargin: "0px 0px -8% 0px" });
+  $$(".tile,.reason,details").forEach(e => { e.classList.add("rv"); io.observe(e); });
+}
+const imgOn = e => { if (e.target.tagName === "IMG") e.target.classList.add("ld"); };
+document.addEventListener("load", imgOn, true); document.addEventListener("error", imgOn, true);
+const msg = (h, extra = "") => `<div id="msg" style="padding-top:140px">${h}${extra}</div>`;
+
+/* первый запуск: если база пуста, просим Edge Function подтянуть TMDB */
+async function syncCatalog(app) {
+  app.innerHTML = msg(t("syncing"));
+  const { data, error } = await sb.functions.invoke("sync-tmdb");
+  let detail = data && data.error;
+  if (error) { try { detail = (await error.context.json()).error; } catch { detail = error.message; } }
+  if (detail) throw new Error(t("syncerr") + ": " + detail);
+}
+
+/* ---------- views ---------- */
+const LISTS = {
+  now:  { k: "trending", type: "movie", q: b => b("movie").order("popularity", { ascending: false, nullsFirst: false }).order("updated_at", { ascending: false }) },
+  top:  { k: "top10", type: "movie", q: b => b("movie").gte("vote_count", 1000).order("vote_average", { ascending: false }) },
+  pop:  { k: "popular", type: "movie", q: b => b("movie").gte("vote_count", 1).order("vote_count", { ascending: false }) },
+  tv:   { k: "series", type: "tv", q: b => b("tv").order("popularity", { ascending: false }) },
+  cin:  { k: "now", type: "movie", q: b => b("movie").lte("release_date", today()).gte("release_date", daysAgo(75)).order("popularity", { ascending: false }) },
+  soon: { k: "soon", type: "movie", q: b => b("movie").gt("release_date", today()).order("release_date") }
+};
+const HOME = { now: 10, top: 10, pop: 14, tv: 14, cin: 14, soon: 14 };
+async function loadHome() {
+  const ks = Object.keys(HOME), res = await Promise.all(ks.map(k => LISTS[k].q(base).limit(HOME[k]).then(ok)));
+  return Object.fromEntries(ks.map((k, i) => [k, res[i]]));
+}
+async function home(app) {
+  let r = await loadHome();
+  if (!r.now.length) throw new Error(t("nodata"));
+  const more = k => `#/list/${k}`;
+  app.innerHTML = `<section class="sec first"><div class="rh"><h2>${t("trending")}</h2><a href="${more("now")}">${t("all")}</a></div>${rail(r.now.map(m => card(m, "lg")).join(""))}</section>
+    ${r.top.length ? `<section class="sec"><div class="rh"><h2>${t("top10")}</h2><a href="${more("top")}">${t("all")}</a></div>${rail(r.top.map((m, i) => t10(m, i + 1)).join(""))}</section>` : ""}
+    ${row(t("popular"), r.pop, more("pop"))}${row(t("series"), r.tv, more("tv"))}${row(t("now"), r.cin, more("cin"))}${row(t("soon"), r.soon, more("soon"))}`;
+}
+async function listPage(app, key) {
+  const L = LISTS[key]; if (!L) throw new Error(t("none"));
+  const r = ok(await L.q(base).limit(30)), dest = L.type === "tv" ? "#/tv" : "#/movies";
+  app.innerHTML = `<div class="page"><div class="rh"><h1>${t(L.k)}</h1><a class="fbtn" href="${dest}">${t("filters")}</a></div>
+    ${r.length ? `<div class="grid">${r.map(m => card(m)).join("")}</div>` : `<div id="msg">${t("empty")}</div>`}
+    <a class="morebtn" href="${dest}">${t(L.type === "tv" ? "alltv" : "allmovies")}</a></div>`;
+}
+
+const PS = 48;
+let genres = {}, cat = { type: "movie", genre: "", sort: "popularity", year: "", page: 1 };
+async function catalog(app, type) {
+  if (cat.type !== type) cat = { type, genre: "", sort: "popularity", year: "", page: 1 };
+  if (!genres[type]) genres[type] = ok(await sb.from("genres").select("*").contains("media_types", [type]));
+  const gl = genres[type].slice().sort((a, b) => GN(a).localeCompare(GN(b), lang));
+  const yrs = Array.from({ length: 40 }, (_, k) => new Date().getFullYear() - k);
+  app.innerHTML = `<div class="page"><h1>${type === "movie" ? t("movies") : t("tv")}</h1>
+    <div class="bar"><select class="f" id="fs" aria-label="Sort"><option value="popularity">${t("popsort")}</option><option value="vote_average">${t("ratsort")}</option><option value="release_date">${t("newsort")}</option></select>
+    <select class="f" id="fy" aria-label="Year"><option value="">${t("anyyear")}</option>${yrs.map(y => `<option>${y}</option>`).join("")}</select></div>
+    <div class="chips" id="fg"><button class="chip on" data-g="">${t("allg")}</button>${gl.map(g => `<button class="chip" data-g="${g.id}">${esc(GN(g))}</button>`).join("")}</div>
+    <div class="grid" id="g"></div><button class="btn line more" id="m" hidden>${t("showmore")}</button><div id="msg"></div></div>`;
+  $("#fs").value = cat.sort; $("#fy").value = cat.year;
+  $$("#fg .chip").forEach(c => c.classList.toggle("on", c.dataset.g === String(cat.genre)));
+  const load = async reset => {
+    if (reset) { cat.page = 1; $("#g").innerHTML = ""; }
+    $("#msg").textContent = t("loading");
+    let r = sb.from("titles").select(cat.genre ? "*,title_genres!inner(genre_id)" : "*", { count: "exact" }).eq("media_type", type).not("poster_path", "is", null);
+    if (cat.genre) r = r.eq("title_genres.genre_id", cat.genre);
+    if (cat.year) r = r.gte("release_date", cat.year + "-01-01").lte("release_date", cat.year + "-12-31");
+    if (cat.sort === "vote_average") r = r.gte("vote_count", 300);
+    if (cat.sort === "release_date") r = r.lte("release_date", today());
+    const res = await r.order(cat.sort, { ascending: false, nullsFirst: false }).range((cat.page - 1) * PS, cat.page * PS - 1);
+    $("#g").insertAdjacentHTML("beforeend", ok(res).map(card).join(""));
+    $("#msg").textContent = $("#g").children.length ? "" : t("empty");
+    $("#m").hidden = (res.count || 0) <= cat.page * PS;
+  };
+  $("#fs").onchange = e => { cat.sort = e.target.value; load(true); };
+  $("#fy").onchange = e => { cat.year = e.target.value; load(true); };
+  $("#fg").onclick = e => { const b = e.target.closest(".chip"); if (!b) return; cat.genre = b.dataset.g; $$("#fg .chip").forEach(c => c.classList.toggle("on", c === b)); load(true); };
+  $("#m").onclick = () => { cat.page++; load(); };
+  load(true);
+}
+
+async function search(app, q) {
+  app.innerHTML = `<div class="page"><h1>${t("searchfor")}: ${esc(q)}</h1><div class="grid" id="g"></div><div id="msg">${t("loading")}</div></div>`;
+  const s = q.replace(/[%,()*\\]/g, " ").trim();
+  const r = s ? ok(await sb.from("titles").select("*").or(`title_ru.ilike.%${s}%,title_en.ilike.%${s}%,original_title.ilike.%${s}%`).order("popularity", { ascending: false }).limit(60)) : [];
+  $("#g").innerHTML = r.map(card).join(""); $("#msg").textContent = r.length ? "" : t("none");
+}
+async function favsView(app) {
+  if (!me) { app.innerHTML = `<div class="page"><h1>${t("mine")}</h1><div id="msg">${t("needlogin")}<br><br><button class="btn fill" id="gologin">${t("signin")}</button></div></div>`; $("#gologin").onclick = () => openAuth("in"); return; }
+  const r = ok(await sb.from("favorites").select("created_at,titles(*)").order("created_at", { ascending: false })).map(x => x.titles).filter(Boolean);
+  app.innerHTML = `<div class="page"><h1>${t("mine")}</h1>${r.length ? `<div class="grid">${r.map(card).join("")}</div>` : `<div id="msg">${t("favempty")}</div>`}</div>`;
+}
+
+/* ---------- плеер ---------- */
+function resolveSrc(raw) {
+  let u;
+  try { u = new URL(String(raw || "").trim()); } catch { return null; }
+  // Принимаем ссылки с любых доменов, но только по HTTP(S).
+  // Это не позволяет передавать javascript:, data: и другие опасные схемы.
+  if (!["https:", "http:"].includes(u.protocol) || !u.hostname || u.username || u.password) return null;
+  const h = u.hostname.replace(/^www\./, "");
+  if (/\.(mp4|webm|ogv|m4v|m3u8)$/i.test(u.pathname)) return { kind: "video", src: u.href, host: h };
+  if (h === "youtu.be") {
+    const id = u.pathname.slice(1).split("/")[0];
+    return /^[\w-]{11}$/.test(id) ? { kind: "plyr", prov: "youtube", id, host: "YouTube" } : { kind: "frame", src: u.href, host: h };
+  }
+  if (h === "youtube.com" || h.endsWith(".youtube.com") || h === "youtube-nocookie.com" || h.endsWith(".youtube-nocookie.com")) {
+    const id = u.searchParams.get("v") || (u.pathname.match(/\/(?:embed|shorts)\/([\w-]{11})/) || [])[1];
+    return id ? { kind: "plyr", prov: "youtube", id, host: "YouTube" } : { kind: "frame", src: u.href, host: h };
+  }
+  if (h === "vimeo.com" || h.endsWith(".vimeo.com")) {
+    const id = (u.pathname.match(/\/(?:video\/)?(\d+)/) || [])[1];
+    return id ? { kind: "plyr", prov: "vimeo", id, host: "Vimeo" } : { kind: "frame", src: u.href, host: h };
+  }
+  if (h === "archive.org") {
+    const m = u.pathname.match(/\/(?:details|embed)\/([^/]+)/);
+    return m ? { kind: "frame", src: `https://archive.org/embed/${encodeURIComponent(m[1])}`, host: "Internet Archive" } : { kind: "frame", src: u.href, host: h };
+  }
+  // Любой другой сайт открываем внутри iframe. Сайт-источник может запрещать встраивание.
+  return { kind: "frame", src: u.href, host: h };
+}
+const PICO = { plyr: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>', video: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>', frame: '<svg viewBox="0 0 24 24"><path d="M3 5h18v14H3zM5 7v10h14V7z"/></svg>' };
+function playerItems(m) {
+  const l = [];
+  (m.title_sources || []).slice().sort((a, b) => a.ord - b.ord).forEach(x => l.push({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
+  return l.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r);
+}
+function playerHtml(items, m) {
+  return `<section class="sec"><div class="pp${items.length < 2 ? " one" : ""}"><div>
+    <div class="pp-screen" id="ppS"><button class="pp-start" id="ppGo" aria-label="Play" style="--img:url(${m.backdrop_path ? im("w780", m.backdrop_path) : ""})"><i><svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg></i></button></div>
+    <div class="pp-now" id="ppN"><b>${esc(items[0].title)}</b><span>${items[0].quality ? esc(items[0].quality) : ""}</span></div></div>
+    <div class="pp-list">${items.map((s, i) => `<button class="pp-src" data-i="${i}" aria-current="${i === 0}"><span class="pp-ico">${PICO[s.r.kind]}</span><span><b>${esc(s.title)}</b></span>${s.quality ? `<span class="pp-q">${esc(s.quality)}</span>` : ""}</button>`).join("")}</div></div></section>`;
+}
+/* ---- прогресс/история (Supabase). Ошибки глушим: сайт работает и без новых таблиц ---- */
+let accessToken = null;
+const fmtT = x => { x = Math.max(0, Math.floor(x)); const h = Math.floor(x / 3600), m = Math.floor(x % 3600 / 60), s2 = x % 60; return (h ? h + ":" + String(m).padStart(2, "0") : m) + ":" + String(s2).padStart(2, "0"); };
+async function getResume(title_id, episode_id) {
+  if (!me) return null;
+  try {
+    let q = sb.from("watch_progress").select("position_seconds,duration_seconds,completed").eq("title_id", title_id);
+    q = episode_id ? q.eq("episode_id", episode_id) : q.is("episode_id", null);
+    const r = await q.maybeSingle(); return r.data || null;
+  } catch { return null; }
+}
+function saveProgress(ctx, pos, dur, keepalive) {
+  if (!me || !ctx || !ctx.title_id || !(dur > 0)) return;
+  const row = { user_id: me.id, title_id: ctx.title_id, episode_id: ctx.episode_id || null, position_seconds: Math.floor(pos), duration_seconds: Math.floor(dur), completed: pos / dur >= 0.92, updated_at: new Date().toISOString() };
+  if (keepalive && accessToken) {
+    try { fetch(SB_URL + "/rest/v1/watch_progress?on_conflict=user_id,title_id,episode_id", { method: "POST", keepalive: true, headers: { apikey: SB_KEY, Authorization: "Bearer " + accessToken, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row) }); } catch {}
+  } else sb.from("watch_progress").upsert(row, { onConflict: "user_id,title_id,episode_id" }).then(() => {}, () => {});
+}
+function touchHistory(ctx) {
+  if (!me || !ctx || !ctx.title_id) return;
+  sb.from("watch_history").upsert({ user_id: me.id, title_id: ctx.title_id, episode_id: ctx.episode_id || null, watched_at: new Date().toISOString() }, { onConflict: "user_id,title_id,episode_id" }).then(() => {}, () => {});
+}
+
+function initPlayer(root, items, ctx) {
+  const scr = $("#ppS", root); if (!scr) return;
+  ctx = ctx || {};
+  let pl = null, hl = null, cur = 0, gen = 0, started = false;
+  const st = { pos: 0, dur: 0 }, failed = new Set();
+  const toast = document.createElement("div"); toast.className = "pp-toast"; toast.setAttribute("role", "status"); scr.after(toast);
+  let tt; const say = x => { toast.textContent = x; toast.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => toast.classList.remove("on"), 6000); };
+  const flush = () => { if (st.dur > 0) saveProgress(ctx, st.pos, st.dur, true); };
+  if (!ctx._bound) { ctx._bound = 1; window.addEventListener("pagehide", flush); document.addEventListener("visibilitychange", () => { if (document.hidden) flush(); }); window.addEventListener("hashchange", flush, { once: true }); }
+  const OPT = {
+    controls: ["play-large", "play", "progress", "current-time", "mute", "volume", "settings", "pip", "fullscreen"],
+    settings: ["speed"], speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
+    fullscreen: { enabled: true, fallback: true, iosNative: true },
+    keyboard: { focused: true, global: false }, hideControls: true, clickToPlay: true,
+    youtube: { noCookie: true, rel: 0, modestbranding: 1, playsinline: 1 },
+    i18n: lang === "ru" ? { restart: "Сначала", rewind: "Назад {seektime} с", play: "Воспроизвести", pause: "Пауза", fastForward: "Вперёд {seektime} с", seek: "Перемотка", played: "Просмотрено", buffered: "Загружено", currentTime: "Текущее время", duration: "Длительность", volume: "Громкость", mute: "Без звука", unmute: "Со звуком", download: "Скачать", enterFullscreen: "На весь экран", exitFullscreen: "Выйти из полноэкранного режима", settings: "Настройки", speed: "Скорость", normal: "Обычная", pip: "Картинка в картинке", menuBack: "Назад" } : {}
+  };
+  const nextFrom = i => { for (let k = 1; k <= items.length; k++) { const j = (i + k) % items.length; if (!failed.has(j) && items[j].r.kind === "video") return j; } return -1; };
+  const play = (i, startAt) => {
+    const s = items[i], my = ++gen; cur = i;
+    if (pl) { try { pl.destroy(); } catch {} pl = null; }
+    if (hl) { try { hl.destroy(); } catch {} hl = null; }
+    scr.innerHTML = ""; let el;
+    if (s.r.kind === "video") {
+      el = document.createElement("video"); el.playsInline = true; el.preload = "metadata"; scr.appendChild(el);
+      const key = "pos:" + s.r.src; let last = 0, lastSave = 0, seeked = false, recovered = false;
+      const target = startAt !== undefined ? startAt : (+ls.get(key) || 0);
+      const seek = () => { if (seeked) return; seeked = true; if (target > 3 && (!isFinite(el.duration) || target < el.duration - 8)) el.currentTime = target; };
+      const fail = why => {
+        if (my !== gen) return; failed.add(i);
+        const resumeAt = st.pos > 3 ? st.pos : target, n = nextFrom(i);
+        if (n < 0) { if (pl) { try { pl.destroy(); } catch {} pl = null; } if (hl) { try { hl.destroy(); } catch {} hl = null; } scr.innerHTML = `<div class="pp-over"><b>Не удалось воспроизвести видео</b><span>Все источники недоступны. Попробуйте позже.</span></div>`; return; }
+        say("Источник недоступен, переключаемся на резервный"); play(n, resumeAt);
+      };
+      const begin = lv => {
+        const o = Object.assign({}, OPT, { i18n: Object.assign({}, OPT.i18n, { qualityLabel: { 0: "Auto" } }) });
+        if (lv && lv.length > 1) {
+          o.settings = ["quality", "speed"];
+          o.quality = { default: 0, options: [0, ...lv], forced: true, onChange: q => { if (!hl) return; hl.currentLevel = q === 0 ? -1 : hl.levels.findIndex(l => l.height === q); } };
+        }
+        if (window.Plyr) pl = new Plyr(el, o); else el.controls = true;
+        const p = el.play(); if (p && p.catch) p.catch(() => {});
+      };
+      el.addEventListener("loadedmetadata", seek);
+      el.addEventListener("timeupdate", () => {
+        st.pos = el.currentTime; st.dur = el.duration || st.dur; const n = Date.now();
+        if (n - last > 4000) { last = n; ls.set(key, Math.floor(el.currentTime)); }
+        if (n - lastSave > 12000) { lastSave = n; saveProgress(ctx, st.pos, st.dur); }
+      });
+      el.addEventListener("playing", () => { if (!started) { started = true; touchHistory(ctx); } });
+      el.addEventListener("pause", () => { if (!el.ended) saveProgress(ctx, st.pos, st.dur); });
+      el.addEventListener("ended", () => { saveProgress(ctx, st.dur, st.dur); ls.set(key, 0); if (ctx.onNext) ctx.onNext(scr); });
+      el.addEventListener("error", () => fail("media"));
+      if (/\.m3u8(\?|$)/i.test(s.r.src) && window.Hls && Hls.isSupported()) {
+        hl = new Hls({ startPosition: target > 3 ? target : -1 });
+        hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
+        hl.on(Hls.Events.ERROR, (e, d) => {
+          if (!d.fatal || my !== gen) return;
+          if (d.type === Hls.ErrorTypes.MEDIA_ERROR && !recovered) { recovered = true; hl.recoverMediaError(); return; }
+          fail(d.details);
+        });
+        hl.loadSource(s.r.src); hl.attachMedia(el);
+      } else { el.src = s.r.src; begin(null); }
+    } else if (s.r.kind === "plyr" && window.Plyr) {
+      el = document.createElement("div"); el.dataset.plyrProvider = s.r.prov; el.dataset.plyrEmbedId = s.r.id; scr.appendChild(el);
+      pl = new Plyr(el, OPT); pl.once("ready", () => { try { pl.play(); } catch {} });
+    } else {
+      el = document.createElement("iframe");
+      el.src = s.r.kind === "plyr" ? (s.r.prov === "youtube" ? `https://www.youtube-nocookie.com/embed/${s.r.id}?rel=0&autoplay=1` : `https://player.vimeo.com/video/${s.r.id}?autoplay=1`) : s.r.src;
+      el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = "strict-origin-when-cross-origin"; el.title = s.title; scr.appendChild(el);
+    }
+    $$(".pp-src", root).forEach(b => b.setAttribute("aria-current", b.dataset.i == i));
+    $("#ppN", root).innerHTML = `<b>${esc(s.title)}</b><span>${s.quality ? esc(s.quality) : ""}</span>`;
+  };
+  const first = () => play(0);
+  $("#ppGo", root).onclick = async () => {
+    const r = ctx.resume;
+    if (me && r && !r.completed && r.position_seconds > 30) {
+      scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Продолжить просмотр с ${fmtT(r.position_seconds)}</b><button class="btn fill" id="ppRes">Продолжить</button><button class="btn line" id="ppRst">Начать сначала</button></div>`);
+      $("#ppRes", scr).onclick = () => play(0, r.position_seconds);
+      $("#ppRst", scr).onclick = () => { items.forEach(x => ls.set("pos:" + (x.r.src || ""), 0)); play(0, 0); };
+    } else play(0);
+  };
+  $$(".pp-src", root).forEach(b => b.onclick = () => play(+b.dataset.i, st.pos > 3 ? st.pos : undefined));
+}
+
+const DSEL = "*,title_genres(genres(id,name_ru,name_en)),credits(role,character,ord,people(name,profile_path)),title_sources(label,url,quality,ord)";
+async function detail(app, type, id) {
+  let { data: m, error } = await sb.from("titles").select(DSEL).eq("id", id).maybeSingle();
+  if (error) throw new Error(t("loaderr") + ": " + error.message);
+  if (!m) throw new Error(t("none"));
+  if (!m.hydrated && m.tmdb_id > 0) { /* подробности (актёры, трейлер, сервисы) подтягиваются при первом открытии */
+    try { await sb.functions.invoke("sync-bulk", { body: { hydrate: m.id } }); } catch {}
+    const r2 = await sb.from("titles").select(DSEL).eq("id", id).maybeSingle(); if (r2.data) m = r2.data;
+  }
+  const gs = (m.title_genres || []).map(x => x.genres).filter(Boolean);
+  const cr = (m.credits || []).filter(c => c.people);
+  const cast = cr.filter(c => c.role === "cast").sort((a, b) => a.ord - b.ord), dr = cr.find(c => c.role === "director");
+  const names = m.providers?.names || [];
+  let sim = [];
+  if (gs.length) sim = (ok(await sb.from("title_genres").select("titles(*)").eq("genre_id", gs[0].id).limit(40))).map(x => x.titles).filter(x => x && x.id !== m.id && x.media_type === m.media_type && x.poster_path).slice(0, 20);
+  const fav = me ? !!(await sb.from("favorites").select("title_id").eq("title_id", m.id).maybeSingle()).data : false;
+  const dur = m.runtime ? m.runtime + " " + t("min") : "";
+  const pit = playerItems(m);
+  let seasons = [];
+  if (m.media_type === "tv") { try { const r = await sb.from("seasons").select("*,episodes(id,episode_number,name,overview,still_path,runtime,air_date,episode_sources(id))").eq("title_id", m.id).order("season_number"); seasons = r.data || []; } catch {} }
+  const resume = m.media_type === "movie" && pit.length ? await getResume(m.id, null) : null;
+  app.innerHTML = `<section class="dhero" style="--img:url(${m.backdrop_path ? im("w1280", m.backdrop_path) : ""})"><div class="in">
+    <img class="p" src="${m.poster_path ? im("w500", m.poster_path) : NOIMG}" alt="">
+    <div class="dtxt"><h1>${esc(T(m))}</h1>${m.tagline ? `<p class="tag">${esc(m.tagline)}</p>` : ""}
+    <div class="facts"><span>★ ${num(m.vote_average) ? num(m.vote_average).toFixed(1) : "—"}</span><span>${Y(m)}</span>${dur ? `<span>${dur}</span>` : ""}${seasons.length ? `<span>${seasons.filter(x => x.season_number > 0).length || seasons.length} сез.</span>` : ""}${gs.map(g => `<span>${esc(GN(g))}</span>`).join("")}</div>
+    <p class="ov">${esc(OV(m)) || t("nodesc")}</p>${dr ? `<p class="tag" style="font-size:16px">${t("dir")}: ${esc(dr.people.name)}</p>` : ""}
+    <div class="btns">${m.trailer_key ? `<button class="btn fill" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : pit.length ? `<button class="btn fill" data-go="ppS">${t("watch")}</button>` : ""}<button class="btn line" id="fv">${fav ? t("inlist") : t("add")}</button></div></div></div></section>
+    ${pit.length ? playerHtml(pit, m) : ""}
+    ${m.media_type === "tv" ? `<section class="sec" id="epsec"></section>` : ""}
+
+    ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<div class="person">${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></div>`).join("")}</div></section>` : ""}
+    ${row(t("similar"), sim)}<div style="height:60px"></div>`;
+  initPlayer(app, pit, { title_id: m.id, episode_id: null, resume });
+  if (m.media_type === "tv") seasonsUI($("#epsec", app), m, seasons);
+  let cur = fav;
+  $("#fv").onclick = async e => {
+    if (!me) return openAuth("in");
+    const b = e.target; b.disabled = true;
+    const r = cur ? await sb.from("favorites").delete().eq("title_id", m.id) : await sb.from("favorites").insert({ title_id: m.id });
+    b.disabled = false;
+    if (!r.error) { cur = !cur; b.textContent = cur ? t("inlist") : t("add"); }
+  };
+}
+
+/* ---------- interactions ---------- */
+document.addEventListener("click", e => {
+  const rb = e.target.closest(".rail>button");
+  if (rb) { const s = rb.parentNode.querySelector(".scroller"); return s.scrollBy({ left: (rb.classList.contains("l") ? -1 : 1) * s.clientWidth * .85, behavior: "smooth" }); }
+  const au = e.target.closest("[data-auth]"); if (au) return openAuth(au.dataset.auth);
+  const y = e.target.closest("[data-yt]"); if (y) return yt(y.dataset.yt);
+  const g = e.target.closest("[data-go]");
+  if (g) { const go = () => $("#" + g.dataset.go)?.scrollIntoView({ behavior: "smooth" }); if ($("#" + g.dataset.go)) go(); else { location.hash = "#/"; setTimeout(go, 1200); } }
+});
+function yt(key) { $("#dbody").innerHTML = `<iframe src="https://www.youtube.com/embed/${encodeURIComponent(key)}?autoplay=1" allow="autoplay; encrypted-media; fullscreen" allowfullscreen title="Trailer"></iframe>`; $("#dlg").showModal(); }
+$("#dlg").addEventListener("close", () => $("#dbody").innerHTML = "");
+$("#dx").onclick = () => $("#dlg").close();
+[$("#dlg")].forEach(d => d.addEventListener("click", e => { if (e.target === d) d.close(); }));
+
+/* ---------- аккаунты (Supabase Auth) ---------- */
+let ret = "#/", authEmail = "";
+function openAuth(mode) { if (!/^#\/(login|signup|profile)/.test(location.hash)) ret = location.hash || "#/"; location.hash = mode === "up" ? "#/signup" : "#/login"; }
+function authPage(app, up) {
+  if (me) { location.hash = "#/profile"; return; }
+  app.innerHTML = `<div class="authpg"><h1>${up ? t("auth_up") : t("auth_in")}</h1><p class="sub2">${t("authsub")}</p>
+    <form class="af" novalidate>
+      <label class="lb">${t("email_l")}<input class="ai" type="email" name="e" placeholder="name@example.com" autocomplete="email" inputmode="email" autocapitalize="off" value="${esc(authEmail)}"></label>
+      <label class="lb">${t("pass_l")}<input class="ai" type="password" name="p" autocomplete="${up ? "new-password" : "current-password"}"></label>
+      ${up ? `<p class="hint">${t("passhint")}</p>` : ""}
+      <p class="err" role="alert"></p>
+      <button class="btn fill" type="submit">${up ? t("auth_up") : t("auth_in")}</button>
+      <button class="btn alt" type="button" id="sw">${up ? t("haveacc") : t("noacc")}</button>
+    </form></div>`;
+  const f = $(".af", app), err = $(".err", f);
+  $("#sw").onclick = () => { authEmail = f.e.value; location.hash = up ? "#/login" : "#/signup"; };
+  f.onsubmit = async ev => {
+    ev.preventDefault(); err.style.color = ""; err.textContent = "";
+    const e = f.e.value.trim(), p = f.p.value; authEmail = e;
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/.test(e)) { err.textContent = t("bad"); return; }
+    if (up && p.length < 6) { err.textContent = t("shortpass"); return; }
+    const btn = $("button[type=submit]", f); btn.disabled = true;
+    const r = up ? await sb.auth.signUp({ email: e, password: p }) : await sb.auth.signInWithPassword({ email: e, password: p });
+    btn.disabled = false;
+    if (r.error) { err.textContent = /invalid login/i.test(r.error.message) ? t("badlogin") : r.error.message; return; }
+    if (up && !r.data.session) { err.style.color = "var(--blue)"; err.textContent = t("confirm"); return; }
+    location.hash = ret;
+  };
+}
+async function profilePage(app) {
+  if (!me) { location.hash = "#/login"; return; }
+  app.innerHTML = `<div class="authpg"><h1>${t("prof")}</h1><p class="sub2">${t("me")} ${esc(me.email)}</p><button class="btn fill" id="out">${t("signout")}</button>
+    <h2 style="margin-top:36px;font-size:24px">История просмотров</h2><div class="hist" id="hist"><p style="color:var(--mute)">${t("loading")}</p></div></div>`;
+  $("#out").onclick = async () => { await sb.auth.signOut(); location.hash = "#/"; };
+  const box = $("#hist");
+  try {
+    const [h, p] = await Promise.all([
+      sb.from("watch_history").select("id,title_id,episode_id,watched_at,titles(*),episodes(id,episode_number,name,seasons(season_number))").order("watched_at", { ascending: false }).limit(50),
+      sb.from("watch_progress").select("title_id,episode_id,position_seconds,duration_seconds,completed")
+    ]);
+    if (h.error) throw h.error;
+    const pm = new Map((p.data || []).map(x => [x.title_id + "/" + (x.episode_id || 0), x]));
+    const rows = (h.data || []).filter(x => x.titles);
+    const draw = list => {
+      box.innerHTML = list.length ? `<button class="btn line sm" id="hclr" style="align-self:flex-end">Очистить историю</button>` + list.map(x => {
+        const pr = pm.get(x.title_id + "/" + (x.episode_id || 0)), pct = pr && pr.duration_seconds ? Math.min(100, Math.round(pr.position_seconds / pr.duration_seconds * 100)) : 0;
+        const ep = x.episodes ? `С${x.episodes.seasons.season_number} · Е${x.episodes.episode_number}${x.episodes.name ? " · " + esc(x.episodes.name) : ""}` : "";
+        const href = x.episode_id ? `#/episode/${x.episode_id}` : `#/${x.titles.media_type}/${x.title_id}`;
+        return `<div class="hi" data-id="${x.id}"><img src="${x.titles.poster_path ? im("w185", x.titles.poster_path) : NOIMG}" alt="">
+          <div><b>${esc(T(x.titles))}</b><small>${ep ? ep + "<br>" : ""}${fdt(x.watched_at)}${pr ? (pr.completed ? " · просмотрено" : " · " + pct + "%") : ""}</small>${pr ? `<div class="bar2"><i style="width:${pr.completed ? 100 : pct}%"></i></div>` : ""}</div>
+          <div class="acts"><a class="btn fill sm" href="${href}">Продолжить</a><button class="btn line sm" data-del="${x.id}">Удалить</button></div></div>`;
+      }).join("") : `<p style="color:var(--mute)">История пуста.</p>`;
+      $$("[data-del]", box).forEach(b => b.onclick = async () => { const d = await sb.from("watch_history").delete().eq("id", b.dataset.del); if (!d.error) { rows.splice(rows.findIndex(r => String(r.id) === b.dataset.del), 1); draw(rows); } });
+      const c = $("#hclr", box); if (c) c.onclick = async () => { if (!confirm("Очистить всю историю просмотров?")) return; const d = await sb.from("watch_history").delete().eq("user_id", me.id); if (!d.error) { rows.length = 0; draw(rows); } };
+    };
+    draw(rows);
+  } catch (e) { box.innerHTML = `<p style="color:var(--mute)">История недоступна.</p>`; }
+}
+function updateSign() {
+  const b = $("#sign"), u = me && me.email;
+  b.classList.toggle("me", !!u); b.textContent = u ? u[0].toUpperCase() : t("signin"); b.title = u || "";
+}
+$("#sign").onclick = () => { if (me) location.hash = "#/profile"; else openAuth("in"); };
+sb.auth.onAuthStateChange((ev, s) => {
+  const was = me && me.id; me = s ? s.user : null; accessToken = s ? s.access_token : null; updateSign();
+  setTimeout(async () => { /* вне колбэка auth, чтобы не блокировать клиент */
+    await loadAdmin();
+    if ((me && me.id) !== was && ev !== "INITIAL_SESSION") { if (/^#\/(favs|movie|tv|admin|episode|profile)/.test(location.hash) || location.hash === "#/favs") route(); }
+    if (ev === "INITIAL_SESSION") route();
+  }, 0);
+});
+
+/* nav: language, search, burger */
+const setLang = v => { lang = v; ls.set("kadr_lang", v); applyLang(); route(); };
+$("#lang").onchange = e => setLang(e.target.value); $("#lang2").onchange = e => setLang(e.target.value);
+let sOpened = 0;
+const closeSearch = () => { $("#sbar").classList.remove("on"); $("#q").blur(); };
+const openSearch = () => { sOpened = Date.now(); $("#sbar").classList.add("on"); setTimeout(() => $("#q").focus(), 60); };
+let lastY = window.scrollY;
+window.addEventListener("scroll", () => { const y = window.scrollY; if ($("#sbar").classList.contains("on") && Date.now() - sOpened > 700 && Math.abs(y - lastY) > 8) closeSearch(); lastY = y; }, { passive: true });
+document.addEventListener("click", e => { if ($("#sbar").classList.contains("on") && !e.target.closest("#sbar,#sbtn,#fsearch")) closeSearch(); }, true);
+window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/search/")) closeSearch(); });
+$("#sbtn").onclick = () => $("#sbar").classList.contains("on") ? closeSearch() : openSearch();
+$("#fsearch").onclick = () => { window.scrollTo({ top: 0, behavior: "smooth" }); openSearch(); };
+$("#q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(qt); const v = e.target.value.trim(); if (v) location.hash = "#/search/" + encodeURIComponent(v); closeSearch(); } });
+document.addEventListener("keydown", e => { if (e.key === "Escape") closeSearch(); });
+var qt; $("#q").oninput = e => { clearTimeout(qt); const v = e.target.value.trim(); qt = setTimeout(() => { location.hash = v ? "#/search/" + encodeURIComponent(v) : "#/"; }, 450); };
+$("#burger").onclick = () => $("#gn").classList.toggle("open");
+$("#links").onclick = () => $("#gn").classList.remove("open");
+
+
+
+/* ---------- сериалы: сезоны и серии ---------- */
+const sName = x => x.season_number === 0 ? "Спецвыпуски" : "Сезон " + x.season_number;
+function seasonsUI(box, m, seasons) {
+  if (!box) return;
+  if (!seasons.length) {
+    box.innerHTML = `<h2>Сезоны и серии</h2><p style="color:var(--mute)">Список серий пока не загружен.</p>${isAdmin ? `<button class="btn line" id="loadSeas">Загрузить сезоны из TMDB</button><p id="loadSt"></p>` : ""}`;
+    const b = $("#loadSeas", box); if (b) b.onclick = async () => {
+      b.disabled = true; $("#loadSt", box).textContent = "⏳ Загрузка…";
+      const { data, error } = await sb.functions.invoke("sync-seasons", { body: { title_id: m.id } });
+      let d = data && data.error; if (error) { try { d = (await error.context.json()).error; } catch { d = error.message; } }
+      if (d) { $("#loadSt", box).textContent = "Ошибка: " + d; b.disabled = false; } else route();
+    };
+    return;
+  }
+  const real = seasons.filter(x => x.season_number > 0), first = (real[0] || seasons[0]).season_number;
+  let sel = +ls.get("season:" + m.id) || first; if (!seasons.some(x => x.season_number === sel)) sel = first;
+  const draw = () => {
+    const sn = seasons.find(x => x.season_number === sel), eps = (sn.episodes || []).slice().sort((a, b) => a.episode_number - b.episode_number);
+    box.innerHTML = `<h2>Сезоны и серии</h2><div class="chips" id="sch">${seasons.map(x => `<button class="chip${x.season_number === sel ? " on" : ""}" data-s="${x.season_number}">${esc(sName(x))}</button>`).join("")}</div>
+      ${sn.overview ? `<p style="color:var(--mute);margin:10px 0">${esc(sn.overview)}</p>` : ""}
+      <div class="eps">${eps.length ? eps.map(e => { const has = (e.episode_sources || []).length > 0; return `<div class="ep"><img loading="lazy" src="${e.still_path ? im("w300", e.still_path) : NOIMG}" alt="">
+        <div><b>${e.episode_number}. ${esc(e.name || "Серия " + e.episode_number)}</b><small>${e.runtime ? e.runtime + " " + t("min") : ""}${e.air_date ? (e.runtime ? " · " : "") + esc(e.air_date) : ""}</small>${e.overview ? `<p>${esc(e.overview)}</p>` : ""}</div>
+        ${has ? `<a class="btn fill sm" href="#/episode/${e.id}">Смотреть серию</a>` : `<span class="nosrc" style="color:var(--mute);font-size:13px">Скоро</span>`}</div>`; }).join("") : `<p style="color:var(--mute)">Серий в этом сезоне нет.</p>`}</div>`;
+    $$("#sch .chip", box).forEach(c => c.onclick = () => { sel = +c.dataset.s; ls.set("season:" + m.id, sel); draw(); });
+  };
+  draw();
+}
+async function episodePage(app, id) {
+  const r = await sb.from("episodes").select("*,seasons(*),episode_sources(*)").eq("id", id).maybeSingle();
+  if (r.error) throw new Error(t("loaderr") + ": " + r.error.message);
+  const e = r.data; if (!e) throw new Error(t("none"));
+  const tr = await sb.from("titles").select("*").eq("id", e.seasons.title_id).maybeSingle(), m = tr.data; if (!m) throw new Error(t("none"));
+  const all = ((await sb.from("episodes").select("id,episode_number,name,seasons!inner(season_number,title_id)").eq("seasons.title_id", m.id)).data || [])
+    .sort((a, b) => a.seasons.season_number - b.seasons.season_number || a.episode_number - b.episode_number);
+  const i = all.findIndex(x => x.id === e.id), prev = all[i - 1], next = all[i + 1];
+  const srcs = (e.episode_sources || []).slice().sort((a, b) => a.ord - b.ord).map(x => ({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
+  const items = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r);
+  const code = `С${e.seasons.season_number} · Е${e.episode_number}`;
+  const nav = x => `#/episode/${x.id}`;
+  app.innerHTML = `<div class="page" style="padding-top:96px"><a href="#/tv/${m.id}" style="color:var(--mute)">← ${esc(T(m))}</a>
+    <h1 style="margin:8px 0 4px">${esc(e.name || "Серия " + e.episode_number)}</h1><p style="color:var(--mute)">${code}${e.runtime ? " · " + e.runtime + " " + t("min") : ""}</p>
+    ${items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">Для этой серии пока нет видеоисточников.</div>`}
+    ${e.overview ? `<p class="ov" style="margin:16px 0">${esc(e.overview)}</p>` : ""}
+    <div class="btns" style="margin:16px 0">${prev ? `<a class="btn line" href="${nav(prev)}">← Предыдущая</a>` : ""}${next ? `<a class="btn fill" href="${nav(next)}">Следующая серия →</a>` : ""}</div></div>`;
+  if (items.length) {
+    const resume = await getResume(m.id, e.id);
+    initPlayer(app, items, { title_id: m.id, episode_id: e.id, resume, onNext: scr => { if (!next) return; scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Серия завершена</b><a class="btn fill" href="${nav(next)}">Следующая серия</a></div>`); } });
+  }
+}
+
+/* ---------- админ-панель (скрытие UI — только визуальная мера; права проверяют RLS и Edge Function) ---------- */
+async function loadAdmin() {
+  isAdmin = false;
+  if (me) { try { const r = await sb.from("profiles").select("is_admin").eq("id", me.id).maybeSingle(); isAdmin = !!(r.data && r.data.is_admin === true); } catch {} }
+  $("#adminlink").hidden = !isAdmin;
+}
+let importing = false;
+const fdt = d => d ? new Date(d).toLocaleString(lang) : "—";
+async function runImport(box) {
+  if (importing) return; importing = true;
+  const btn = $("#imp", box), st = $("#impst", box); btn.disabled = true;
+  st.className = ""; st.textContent = "⏳ Импорт запущен, это может занять несколько минут…";
+  try {
+    const { data, error } = await sb.functions.invoke("sync-tmdb");
+    let detail = data && data.error, status = error && error.context && error.context.status;
+    if (error) { try { detail = (await error.context.json()).error; } catch { detail = error.message; } }
+    if (status === 403) throw new Error("Нет прав администратора (403).");
+    if (detail) throw new Error(detail);
+    st.className = "ok"; st.innerHTML = "✓ Импорт завершён." + (data ? `<pre style="white-space:pre-wrap;font-size:12px;color:var(--mute)">${esc(JSON.stringify(data, null, 1))}</pre>` : "");
+  } catch (e) { st.className = "bad"; st.textContent = "Ошибка импорта: " + e.message; }
+  importing = false; btn.disabled = false;
+}
+async function adminPage(app, tab) {
+  if (!me || !isAdmin) { app.innerHTML = msg("Доступ запрещён."); return; }
+  tab = tab || "overview";
+  const tabs = [["overview", "Обзор"], ["import", "Каталог"], ["sources", "Источники"], ["series", "Сериалы"]];
+  app.innerHTML = `<div class="adm"><h1>Админ-панель</h1><div class="tabs">${tabs.map(([k, n]) => `<a class="chip${k === tab ? " on" : ""}" href="#/admin/${k}">${n}</a>`).join("")}</div><div id="ab"></div></div>`;
+  const ab = $("#ab");
+  if (tab === "overview") {
+    const c = f => f.then(r => r.error ? "ошибка" : r.count ?? 0);
+    const [mv, tv, sr, jobs, dbq] = await Promise.all([
+      c(sb.from("titles").select("id", { count: "exact", head: true }).eq("media_type", "movie")),
+      c(sb.from("titles").select("id", { count: "exact", head: true }).eq("media_type", "tv")),
+      c(sb.from("title_sources").select("id", { count: "exact", head: true })),
+      sb.from("sync_jobs").select("*"),
+      sb.from("titles").select("updated_at").order("updated_at", { ascending: false }).limit(1)
+    ]);
+    const j = jobs.data || [], done = j.filter(x => x.done).length;
+    const last = dbq.data && dbq.data[0] && dbq.data[0].updated_at;
+    ab.innerHTML = `<div class="stats">
+      <div class="stat"><b>${mv}</b><span>Фильмов</span></div><div class="stat"><b>${tv}</b><span>Сериалов</span></div>
+      <div class="stat"><b>${sr}</b><span>Источников</span></div>
+      <div class="stat"><b>${fdt(last)}</b><span>Последнее обновление каталога</span></div>
+      <div class="stat"><b>${done} / ${j.length}</b><span>Задач импорта завершено</span></div>
+      <div class="stat"><b class="${dbq.error ? "bad" : "ok"}">${dbq.error ? "Ошибка" : "Работает"}</b><span>База данных</span></div></div>`;
+  } else if (tab === "import") {
+    ab.innerHTML = `<div class="box"><p style="margin-bottom:12px;color:var(--mute)">Запускает Edge Function <b>sync-tmdb</b>. Сервер сам проверяет, что вы администратор.</p>
+      <button class="btn fill" id="imp">Импортировать каталог</button><div id="impst" style="margin-top:14px"></div></div>`;
+    $("#imp", ab).onclick = () => runImport(ab);
+  } else if (tab === "sources") await sourcesTab(ab);
+  else if (tab === "series") await seriesTab(ab);
+  else ab.innerHTML = `<div id="msg">${t("none")}</div>`;
+}
+async function sourcesTab(ab) {
+  let pick = null;
+  const draw = async () => {
+    const r = await sb.from("title_sources").select("*,titles(*)").order("created_at", { ascending: false }).limit(100);
+    const rows = r.data || [];
+    ab.innerHTML = `<div class="box"><h2 style="font-size:20px;margin-bottom:10px">Добавить источник</h2>
+      <label class="lb">Фильм или сериал<input class="ai" id="tq" placeholder="Начните вводить название" autocomplete="off"></label><div id="tres" style="margin:8px 0"></div>
+      <form class="sf" id="sf" novalidate><label class="lb">URL<input class="ai" name="url" type="url" placeholder="https://" required></label>
+      <label class="lb">Тип / качество<input class="ai" name="quality" placeholder="напр. HD, трейлер"></label>
+      <label class="lb">Порядок<input class="ai" name="ord" type="number" value="0"></label>
+      <button class="btn fill" type="submit">Добавить</button></form><p id="sfe" class="bad" role="alert"></p></div>
+      <div class="box"><h2 style="font-size:20px;margin-bottom:6px">Все источники (${rows.length})</h2>${r.error ? `<p class="bad">${esc(r.error.message)}</p>` : ""}
+      ${rows.length ? rows.map(x => `<div class="row" data-id="${x.id}"><div class="grow"><b>${esc(x.label)}</b>${x.quality ? ` · ${esc(x.quality)}` : ""}<small>${esc(x.titles ? T(x.titles) : "#" + x.title_id)} · ${esc(x.url)}</small></div>
+        <button class="btn line sm" data-act="edit">Изменить</button><button class="btn line sm" data-act="del">Удалить</button></div>`).join("") : `<p style="color:var(--mute)">Источников пока нет.</p>`}</div>`;
+    const tq = $("#tq", ab), tres = $("#tres", ab), fe = $("#sfe", ab);
+    if (pick) tres.innerHTML = `Выбрано: <b>${esc(T(pick))}</b>`;
+    let qt2; tq.oninput = () => { clearTimeout(qt2); qt2 = setTimeout(async () => {
+      const v = tq.value.trim().replace(/[%,()]/g, ""); if (v.length < 2) { tres.innerHTML = ""; return; }
+      const q = await sb.from("titles").select("*").or(`title_ru.ilike.%${v}%,title_en.ilike.%${v}%,original_title.ilike.%${v}%`).order("popularity", { ascending: false }).limit(20);
+      const list = q.data || [];
+      tres.innerHTML = list.length ? list.map((m, i) => `<button type="button" class="chip" data-p="${i}">${esc(T(m))} (${Y(m)})</button>`).join(" ") : "Ничего не найдено";
+      $$("[data-p]", tres).forEach(b => b.onclick = () => { pick = list[+b.dataset.p]; tres.innerHTML = `Выбрано: <b>${esc(T(pick))}</b>`; });
+    }, 350); };
+    $("#sf", ab).onsubmit = async ev => {
+      ev.preventDefault(); const f = ev.target; fe.textContent = "";
+      if (!pick) { fe.textContent = "Сначала выберите фильм или сериал."; return; }
+      let u; try { u = new URL(f.url.value.trim()); if (!/^https?:$/.test(u.protocol)) throw 0; } catch { fe.textContent = "Введите корректный URL (http/https)."; return; }
+            const res = await sb.from("title_sources").insert({ title_id: pick.id, label: "Источник " + (rows.filter(y => y.title_id === pick.id).length + 1), url: u.href, quality: f.quality.value.trim() || null, ord: +f.ord.value || 0 });
+      if (res.error) { fe.textContent = res.error.message; return; }
+      pick = null; draw();
+    };
+    $$(".row [data-act]", ab).forEach(b => b.onclick = async () => {
+      const row = b.closest(".row"), id = row.dataset.id, x = rows.find(y => String(y.id) === id);
+      if (b.dataset.act === "del") { if (!confirm("Удалить источник «" + x.label + "»?")) return; const d = await sb.from("title_sources").delete().eq("id", id); if (d.error) alert(d.error.message); else draw(); return; }
+      const label = prompt("Название", x.label); if (label === null) return;
+      const url = prompt("URL", x.url); if (url === null) return;
+      const quality = prompt("Тип / качество", x.quality || ""); if (quality === null) return;
+      try { if (!/^https?:$/.test(new URL(url).protocol)) throw 0; } catch { alert("Некорректный URL"); return; }
+      const u = await sb.from("title_sources").update({ label: label.trim(), url: new URL(url).href, quality: quality.trim() || null }).eq("id", id);
+      if (u.error) alert(u.error.message); else draw();
+    });
+  };
+  await draw();
+}
+
+async function seriesTab(ab) {
+  let show = null, seasons = [], sid = null, eid = null;
+  const loadShow = async () => { const r = await sb.from("seasons").select("*,episodes(id,episode_number,name)").eq("title_id", show.id).order("season_number"); seasons = r.data || []; if (!seasons.some(x => x.id === sid)) sid = seasons[0] ? seasons[0].id : null; const eps = (seasons.find(x => x.id === sid) || {}).episodes || []; if (!eps.some(x => x.id === eid)) eid = eps[0] ? eps[0].id : null; };
+  const draw = async () => {
+    const sn = seasons.find(x => x.id === sid), eps = sn ? sn.episodes.slice().sort((a, b) => a.episode_number - b.episode_number) : [];
+    let srcs = []; if (eid) { const r = await sb.from("episode_sources").select("*").eq("episode_id", eid).order("ord"); srcs = r.data || []; }
+    ab.innerHTML = `<div class="box"><h2 style="font-size:20px;margin-bottom:10px">Сериал</h2><label class="lb">Поиск сериала<input class="ai" id="tq" placeholder="Название" autocomplete="off"></label><div id="tres" style="margin:8px 0">${show ? `Выбрано: <b>${esc(T(show))}</b>` : ""}</div>
+      ${show && !seasons.length ? `<button class="btn line" id="ld">Загрузить сезоны и серии из TMDB</button> <span id="ldst"></span>` : ""}
+      ${seasons.length ? `<form class="sf"><label class="lb">Сезон<select class="ai" id="ss">${seasons.map(x => `<option value="${x.id}"${x.id === sid ? " selected" : ""}>${esc(sName(x))}</option>`).join("")}</select></label>
+      <label class="lb">Серия<select class="ai" id="se">${eps.map(x => `<option value="${x.id}"${x.id === eid ? " selected" : ""}>${x.episode_number}. ${esc(x.name || "")}</option>`).join("")}</select></label></form>` : ""}</div>
+      ${eid ? `<div class="box"><h2 style="font-size:20px;margin-bottom:10px">Источники серии (${srcs.length})</h2>
+      ${srcs.map(x => `<div class="row" data-id="${x.id}"><div class="grow"><b>${esc(x.label)}</b>${x.quality ? " · " + esc(x.quality) : ""} · порядок ${x.ord}<small>${esc(x.url)}</small></div><button class="btn line sm" data-act="edit">Изменить</button><button class="btn line sm" data-act="del">Удалить</button></div>`).join("") || `<p style="color:var(--mute)">Источников нет.</p>`}
+      <h3 style="margin:16px 0 8px">Добавить M3U8 / ссылку</h3><form class="sf" id="sf" novalidate><label class="lb">URL<input class="ai" name="url" type="url" placeholder="https://" required></label>
+      <label class="lb">Качество<input class="ai" name="quality" placeholder="1080p"></label><label class="lb">Порядок<input class="ai" name="ord" type="number" value="${srcs.length}"></label><button class="btn fill" type="submit">Добавить</button></form><p id="sfe" class="bad" role="alert"></p></div>` : ""}`;
+    const tq = $("#tq", ab), tres = $("#tres", ab); let qt3;
+    tq.oninput = () => { clearTimeout(qt3); qt3 = setTimeout(async () => {
+      const v = tq.value.trim().replace(/[%,()]/g, ""); if (v.length < 2) return;
+      const list = (await sb.from("titles").select("*").eq("media_type", "tv").or(`title_ru.ilike.%${v}%,title_en.ilike.%${v}%,original_title.ilike.%${v}%`).order("popularity", { ascending: false }).limit(20)).data || [];
+      tres.innerHTML = list.length ? list.map((m, i) => `<button type="button" class="chip" data-p="${i}">${esc(T(m))} (${Y(m)})</button>`).join(" ") : "Сериалы не найдены";
+      $$("[data-p]", tres).forEach(b => b.onclick = async () => { show = list[+b.dataset.p]; sid = eid = null; await loadShow(); draw(); });
+    }, 350); };
+    const ld = $("#ld", ab); if (ld) ld.onclick = async () => {
+      ld.disabled = true; $("#ldst", ab).textContent = "⏳ Загрузка…";
+      const { data, error } = await sb.functions.invoke("sync-seasons", { body: { title_id: show.id } });
+      let d = data && data.error; if (error) { try { d = (await error.context.json()).error; } catch { d = error.message; } }
+      if (d) { $("#ldst", ab).textContent = "Ошибка: " + d; ld.disabled = false; } else { await loadShow(); draw(); }
+    };
+    const ss = $("#ss", ab); if (ss) ss.onchange = async () => { sid = +ss.value; eid = null; await loadShow(); draw(); };
+    const se = $("#se", ab); if (se) se.onchange = () => { eid = +se.value; draw(); };
+    const sf = $("#sf", ab); if (sf) sf.onsubmit = async ev => {
+      ev.preventDefault(); const f = ev.target, fe = $("#sfe", ab); fe.textContent = "";
+      let u; try { u = new URL(f.url.value.trim()); if (!/^https?:$/.test(u.protocol)) throw 0; } catch { fe.textContent = "Введите корректный URL (http/https)."; return; }
+      const r = await sb.from("episode_sources").insert({ episode_id: eid, label: "Источник " + (srcs.length + 1), url: u.href, quality: f.quality.value.trim() || null, ord: +f.ord.value || 0 });
+      if (r.error) fe.textContent = r.error.message; else draw();
+    };
+    $$(".row [data-act]", ab).forEach(b => b.onclick = async () => {
+      const id = b.closest(".row").dataset.id, x = srcs.find(y => String(y.id) === id);
+      if (b.dataset.act === "del") { if (!confirm("Удалить источник «" + x.label + "»?")) return; const d = await sb.from("episode_sources").delete().eq("id", id); if (d.error) alert(d.error.message); else draw(); return; }
+      const label = prompt("Название", x.label); if (label === null) return;
+      const url = prompt("URL", x.url); if (url === null) return;
+      const quality = prompt("Качество", x.quality || ""); if (quality === null) return;
+      const ord = prompt("Порядок", x.ord); if (ord === null) return;
+      try { if (!/^https?:$/.test(new URL(url).protocol)) throw 0; } catch { alert("Некорректный URL"); return; }
+      const u = await sb.from("episode_sources").update({ label: label.trim(), url: new URL(url).href, quality: quality.trim() || null, ord: +ord || 0 }).eq("id", id);
+      if (u.error) alert(u.error.message); else draw();
+    });
+  };
+  await draw();
+}
+
+/* router */
+let rt = 0;
+async function route() {
+  const my = ++rt, h = location.hash.replace(/^#/, "") || "/", [, a, b] = h.split("/"), app = $("#app");
+  $$("#links a").forEach(x => x.classList.toggle("on", x.dataset.r === "/" + (a || "")));
+  window.scrollTo(0, 0);
+  app.innerHTML = skel();
+  try {
+    if (!a) await home(app);
+    else if (a === "movies") await catalog(app, "movie");
+    else if (a === "tv" && !b) await catalog(app, "tv");
+    else if (a === "list") await listPage(app, b);
+    else if (a === "favs") await favsView(app);
+    else if (a === "login" || a === "signup") authPage(app, a === "signup");
+    else if (a === "profile") await profilePage(app);
+    else if (a === "episode" && b) await episodePage(app, b);
+    else if (a === "admin") await adminPage(app, b);
+    else if (a === "search") await search(app, decodeURIComponent(b || ""));
+    else if ((a === "movie" || a === "tv") && b) await detail(app, a, b);
+    else await home(app);
+    if (my === rt) reveal();
+  } catch (e) { if (my === rt) app.innerHTML = msg(esc(e.message)); }
+}
+window.addEventListener("hashchange", route);
+applyLang();
+</script>
+</body>
+</html>
