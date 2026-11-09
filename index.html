@@ -813,6 +813,29 @@ sb.auth.onAuthStateChange((ev, s) => {
   }, 0);
 });
 
+/* импорт источников из CSV / M3U */
+function splitCsv(line, d) { const o = []; let c = "", q = false; for (let i = 0; i < line.length; i++) { const ch = line[i]; if (ch === '"') { if (q && line[i + 1] === '"') { c += '"'; i++; } else q = !q; } else if (ch === d && !q) { o.push(c.trim()); c = ""; } else c += ch; } o.push(c.trim()); return o; }
+function parseImport(text, fname) {
+  const lines = text.replace(/^\uFEFF/, "").split(/\r?\n/).map(l => l.trim()).filter(Boolean), out = [];
+  if (/\.m3u8?$/i.test(fname) || lines[0].startsWith("#EXTM3U") || lines.some(l => l.startsWith("#EXTINF"))) {
+    let name = "";
+    lines.forEach(l => { if (l.startsWith("#EXTINF")) name = (l.match(/tvg-name="([^"]+)"/) || [])[1] || l.slice(l.lastIndexOf(",") + 1).trim(); else if (!l.startsWith("#")) { if (name) out.push({ name, url: l, quality: "", ord: 0 }); name = ""; } });
+    return out;
+  }
+  const d = [";", "\t", ","].find(c => lines[0].includes(c)) || ";";
+  lines.forEach(l => { const c = splitCsv(l, d); if (c.length >= 2 && /^https?:\/\//i.test(c[1])) out.push({ name: c[0], url: c[1], quality: c[2] || "", ord: +c[3] || 0 }); });
+  return out;
+}
+async function matchImport(x) {
+  try { const u = new URL(x.url); if (!/^https?:$/.test(u.protocol)) throw 0; x = { ...x, url: u.href }; } catch { return { ...x, err: "некорректный URL" }; }
+  const ym = x.name.match(/^(.*?)\s*\((\d{4})\)\s*$/), nm = (ym ? ym[1] : x.name).trim(), yr = ym ? ym[2] : "", v = nm.replace(/[%,()]/g, "");
+  if (v.length < 2) return { ...x, err: "пустое название" };
+  const q = await sb.from("titles").select("*").or(`title_ru.ilike.%${v}%,title_en.ilike.%${v}%,original_title.ilike.%${v}%`).order("popularity", { ascending: false }).limit(15);
+  const low = nm.toLowerCase(), list = q.data || [];
+  const exact = list.filter(m => [m.title_ru, m.title_en, m.original_title].some(t0 => t0 && t0.toLowerCase() === low));
+  const pool = yr ? exact.filter(m => String(Y(m)) === yr) : exact;
+  return pool.length ? { ...x, name: x.name, m: pool[0] } : { ...x, err: exact.length && yr ? "нет такого года" : "не найден" };
+}
 /* nav: language, search, burger */
 const setLang = v => { lang = v; ls.set("kadr_lang", v); applyLang(); route(); };
 $("#lang").onchange = e => setLang(e.target.value); $("#lang2").onchange = e => setLang(e.target.value);
@@ -947,6 +970,9 @@ async function sourcesTab(ab) {
       <label class="lb">Тип / качество<input class="ai" name="quality" placeholder="напр. HD, трейлер"></label>
       <label class="lb">Порядок<input class="ai" name="ord" type="number" value="0"></label>
       <button class="btn fill" type="submit">Добавить</button></form><p id="sfe" class="bad" role="alert"></p></div>
+      <div class="box"><h2 style="font-size:20px;margin-bottom:6px">Импорт из файла</h2>
+      <p class="hint" style="margin:0 0 10px">CSV: <code>название;ссылка;качество;порядок</code> (качество и порядок можно не указывать; год для точности: <code>Начало (2010)</code>). M3U/M3U8: название берётся из <code>#EXTINF</code>.</p>
+      <input class="ai" id="imf" type="file" accept=".csv,.tsv,.txt,.m3u,.m3u8"><div id="imr" style="margin-top:10px"></div></div>
       <div class="box"><h2 style="font-size:20px;margin-bottom:6px">Все источники (${rows.length})</h2>${r.error ? `<p class="bad">${esc(r.error.message)}</p>` : ""}
       ${rows.length ? rows.map(x => `<div class="row" data-id="${x.id}"><div class="grow"><b>${esc(x.label)}</b>${x.quality ? ` · ${esc(x.quality)}` : ""}<small>${esc(x.titles ? T(x.titles) : "#" + x.title_id)} · ${esc(x.url)}</small></div>
         <button class="btn line sm" data-act="edit">Изменить</button><button class="btn line sm" data-act="del">Удалить</button></div>`).join("") : `<p style="color:var(--mute)">Источников пока нет.</p>`}</div>`;
@@ -966,6 +992,26 @@ async function sourcesTab(ab) {
             const res = await sb.from("title_sources").insert({ title_id: pick.id, label: "Источник " + (rows.filter(y => y.title_id === pick.id).length + 1), url: u.href, quality: f.quality.value.trim() || null, ord: +f.ord.value || 0 });
       if (res.error) { fe.textContent = res.error.message; return; }
       pick = null; draw();
+    };
+    const imf = $("#imf", ab), imr = $("#imr", ab);
+    imf.onchange = async () => {
+      const f = imf.files[0]; if (!f) return; imr.textContent = "Читаю файл…";
+      const inp = parseImport(await f.text(), f.name);
+      if (!inp.length) { imr.textContent = "Не нашёл строк с ссылками. Проверьте формат файла."; return; }
+      const out = []; let ix = 0;
+      const work = async () => { while (ix < inp.length) { const k = ix++; out[k] = await matchImport(inp[k]); imr.textContent = "Ищу фильмы: " + Math.min(ix, inp.length) + " / " + inp.length; } };
+      await Promise.all(Array.from({ length: 5 }, work));
+      const good = out.filter(x => x.m && !x.err);
+      imr.innerHTML = `<p>Найдено: <b>${good.length}</b> из ${out.length}</p><div style="max-height:260px;overflow:auto;font-size:14px;margin:8px 0">${out.map(x => `<div style="padding:3px 0">${x.m && !x.err ? "✓" : "✗"} ${esc(x.name)} <span style="color:var(--mute)">${x.m && !x.err ? "→ " + esc(T(x.m)) + " (" + Y(x.m) + ")" : esc(x.err || "не найден")}</span></div>`).join("")}</div>
+        <button class="btn fill" id="imgo" ${good.length ? "" : "disabled"}>Импортировать ${good.length}</button><p id="imerr" class="bad" role="alert"></p>`;
+      const go = $("#imgo", ab); if (!good.length) return;
+      go.onclick = async () => {
+        go.disabled = true; const cnt = {}; rows.forEach(y => cnt[y.title_id] = (cnt[y.title_id] || 0) + 1);
+        const ins = [];
+        good.forEach(x => { if (rows.some(y => y.title_id === x.m.id && y.url === x.url) || ins.some(y => y.title_id === x.m.id && y.url === x.url)) return; cnt[x.m.id] = (cnt[x.m.id] || 0) + 1; ins.push({ title_id: x.m.id, label: "Источник " + cnt[x.m.id], url: x.url, quality: x.quality || null, ord: x.ord || 0 }); });
+        for (let i = 0; i < ins.length; i += 100) { const e = (await sb.from("title_sources").insert(ins.slice(i, i + 100))).error; if (e) { $("#imerr", ab).textContent = e.message; go.disabled = false; return; } }
+        pick = null; draw();
+      };
     };
     $$(".row [data-act]", ab).forEach(b => b.onclick = async () => {
       const row = b.closest(".row"), id = row.dataset.id, x = rows.find(y => String(y.id) === id);
