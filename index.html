@@ -618,7 +618,7 @@ function initPlayer(root, items, ctx) {
   const OPT = {
     controls: ["play-large", "play", "progress", "current-time", "mute", "volume", "settings", "pip", "fullscreen"],
     settings: ["speed"], speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-    fullscreen: { enabled: true, fallback: true, iosNative: false },
+    fullscreen: { enabled: true, fallback: true, iosNative: true },
     keyboard: { focused: true, global: false }, hideControls: true, clickToPlay: true,
     youtube: { noCookie: true, rel: 0, modestbranding: 1, playsinline: 1 },
     i18n: lang === "ru" ? { restart: "Сначала", rewind: "Назад {seektime} с", play: "Воспроизвести", pause: "Пауза", fastForward: "Вперёд {seektime} с", seek: "Перемотка", played: "Просмотрено", buffered: "Загружено", currentTime: "Текущее время", duration: "Длительность", volume: "Громкость", mute: "Без звука", unmute: "Со звуком", download: "Скачать", enterFullscreen: "На весь экран", exitFullscreen: "Выйти из полноэкранного режима", settings: "Настройки", speed: "Скорость", normal: "Обычная", pip: "Картинка в картинке", menuBack: "Назад" } : {}
