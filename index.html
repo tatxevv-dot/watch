@@ -611,6 +611,15 @@ function initPlayer(root, items, ctx) {
   ctx = ctx || {};
   let pl = null, hl = null, cur = 0, gen = 0, started = false;
   const st = { pos: 0, dur: 0 }, failed = new Set();
+  /* iPhone: кнопка полноэкранного режима открывает системный плеер напрямую */
+  scr.addEventListener("click", e => {
+    const b = e.target.closest && e.target.closest('[data-plyr="fullscreen"]'); if (!b) return;
+    const v = scr.querySelector("video"); if (!v || typeof v.webkitEnterFullscreen !== "function" || document.fullscreenEnabled) return;
+    e.preventDefault(); e.stopImmediatePropagation();
+    const was = !v.paused;
+    try { v.webkitEnterFullscreen(); } catch {}
+    v.addEventListener("webkitendfullscreen", () => { if (was) setTimeout(() => v.play().catch(() => {}), 150); }, { once: true });
+  }, true);
   const toast = document.createElement("div"); toast.className = "pp-toast"; toast.setAttribute("role", "status"); scr.after(toast);
   let tt; const say = x => { toast.textContent = x; toast.classList.add("on"); clearTimeout(tt); tt = setTimeout(() => toast.classList.remove("on"), 6000); };
   const flush = () => { if (st.dur > 0) saveProgress(ctx, st.pos, st.dur, true); };
