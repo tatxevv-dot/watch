@@ -46,6 +46,15 @@ a{color:inherit;text-decoration:none}button,select,input,textarea{font:inherit;f
 #sbar input:focus{border-color:var(--ink)}
 #sbar input::placeholder{color:var(--mute);font-weight:400}
 #sbar input::-webkit-search-cancel-button{display:none}
+#sres{position:absolute;left:0;right:0;top:60px;background:var(--navs);border:1px solid var(--line);border-radius:20px;box-shadow:0 12px 40px rgba(0,0,0,.22);overflow:hidden;display:none}
+#sres.on{display:block}
+#sres a{display:flex;align-items:center;gap:12px;padding:8px 14px;border-bottom:1px solid var(--line)}
+#sres a:last-child{border-bottom:0}
+#sres a:hover,#sres a.act{background:var(--bg2)}
+#sres img{width:36px;height:54px;object-fit:cover;border-radius:6px;background:var(--bg2);flex:none}
+#sres b{display:block;font-size:15px;font-weight:600;line-height:1.25}
+#sres small{display:block;color:var(--mute);font-size:13px}
+#sres .none{padding:16px;color:var(--mute);font-size:15px}
 @media(max-width:833px){
   .burger{display:block}.gn-r{margin-left:0}.logo{margin-right:0}
   .links{display:none;position:absolute;top:76px;left:0;right:0;background:var(--navs);flex-direction:column;padding:8px 22px 24px;gap:0}
@@ -310,7 +319,7 @@ img{opacity:0;transition:opacity .45s ease}img.ld{opacity:1}
     </div>
     <button class="burger" id="burger" aria-label="Меню"><span></span><span></span></button>
   </div>
-  <div id="sbar"><div class="sb-in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" enterkeyhint="search" data-ip="searchph" placeholder="Найти фильм или сериал" aria-label="Поиск" autocomplete="off"></div></div>
+  <div id="sbar"><div class="sb-in"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="7"/><path d="M20 20l-3.5-3.5"/></svg><input id="q" type="search" enterkeyhint="search" data-ip="searchph" placeholder="Найти фильм или сериал" aria-label="Поиск" autocomplete="off"><div id="sres" role="listbox"></div></div></div>
 </header>
 
 <main id="app"></main>
@@ -542,7 +551,7 @@ function resolveSrc(raw) {
   // Это не позволяет передавать javascript:, data: и другие опасные схемы.
   if (!["https:", "http:"].includes(u.protocol) || !u.hostname || u.username || u.password) return null;
   const h = u.hostname.replace(/^www\./, "");
-  if (/\.(mp4|webm|ogv|m4v|m3u8)$/i.test(u.pathname)) return { kind: "video", src: u.href, host: h };
+  if (/\.(mp4|webm|ogv|m4v|m3u8)$/i.test(u.pathname) || /\.m3u8(\b|$)/i.test(u.pathname + u.search)) return { kind: "video", src: u.href, host: h };
   if (h === "youtu.be") {
     const id = u.pathname.slice(1).split("/")[0];
     return /^[\w-]{11}$/.test(id) ? { kind: "plyr", prov: "youtube", id, host: "YouTube" } : { kind: "frame", src: u.href, host: h };
@@ -609,10 +618,23 @@ function initPlayer(root, items, ctx) {
   const OPT = {
     controls: ["play-large", "play", "progress", "current-time", "mute", "volume", "settings", "pip", "fullscreen"],
     settings: ["speed"], speed: { selected: 1, options: [0.5, 0.75, 1, 1.25, 1.5, 2] },
-    fullscreen: { enabled: true, fallback: true, iosNative: true },
+    fullscreen: { enabled: true, fallback: true, iosNative: false },
     keyboard: { focused: true, global: false }, hideControls: true, clickToPlay: true,
     youtube: { noCookie: true, rel: 0, modestbranding: 1, playsinline: 1 },
     i18n: lang === "ru" ? { restart: "Сначала", rewind: "Назад {seektime} с", play: "Воспроизвести", pause: "Пауза", fastForward: "Вперёд {seektime} с", seek: "Перемотка", played: "Просмотрено", buffered: "Загружено", currentTime: "Текущее время", duration: "Длительность", volume: "Громкость", mute: "Без звука", unmute: "Со звуком", download: "Скачать", enterFullscreen: "На весь экран", exitFullscreen: "Выйти из полноэкранного режима", settings: "Настройки", speed: "Скорость", normal: "Обычная", pip: "Картинка в картинке", menuBack: "Назад" } : {}
+  };
+  const isHls = src => /\.m3u8(\b|$)/i.test(src);
+  const nativeLevels = async url => {
+    try {
+      const txt = await (await fetch(url)).text(); if (!txt.includes("#EXT-X-STREAM-INF")) return [];
+      const L = txt.split(/\r?\n/), out = [];
+      for (let k = 0; k < L.length; k++) {
+        const m = /RESOLUTION=\d+x(\d+)/.exec(L[k]); if (!L[k].startsWith("#EXT-X-STREAM-INF") || !m) continue;
+        let j = k + 1; while (j < L.length && (!L[j].trim() || L[j].startsWith("#"))) j++;
+        if (L[j]) out.push({ height: +m[1], url: new URL(L[j].trim(), url).href });
+      }
+      return out.sort((a, b) => a.height - b.height);
+    } catch { return []; }
   };
   const nextFrom = i => { for (let k = 1; k <= items.length; k++) { const j = (i + k) % items.length; if (!failed.has(j) && items[j].r.kind === "video") return j; } return -1; };
   const play = (i, startAt) => {
@@ -624,33 +646,43 @@ function initPlayer(root, items, ctx) {
       el = document.createElement("video"); el.playsInline = true; el.preload = "metadata"; scr.appendChild(el);
       const key = "pos:" + s.r.src; let last = 0, lastSave = 0, seeked = false, recovered = false;
       const target = startAt !== undefined ? startAt : (+ls.get(key) || 0);
-      const seek = () => { if (seeked) return; seeked = true; if (target > 3 && (!isFinite(el.duration) || target < el.duration - 8)) el.currentTime = target; };
+      const seek = () => {
+        if (seeked || !(target > 3) || el.readyState < 1) return;
+        seeked = true; if (!isFinite(el.duration) || target < el.duration - 8) el.currentTime = target;
+      };
+      let fixed = false;
+      const fixSeek = () => { if (fixed) return; fixed = true; if (target > 3 && Math.abs(el.currentTime - target) > 5 && (!isFinite(el.duration) || target < el.duration - 8)) el.currentTime = target; };
       const fail = why => {
         if (my !== gen) return; failed.add(i);
         const resumeAt = st.pos > 3 ? st.pos : target, n = nextFrom(i);
         if (n < 0) { if (pl) { try { pl.destroy(); } catch {} pl = null; } if (hl) { try { hl.destroy(); } catch {} hl = null; } scr.innerHTML = `<div class="pp-over"><b>Не удалось воспроизвести видео</b><span>Все источники недоступны. Попробуйте позже.</span></div>`; return; }
         say("Источник недоступен, переключаемся на резервный"); play(n, resumeAt);
       };
-      const begin = lv => {
+      const begin = (lv, nat) => {
         const o = Object.assign({}, OPT, { i18n: Object.assign({}, OPT.i18n, { qualityLabel: { 0: "Auto" } }) });
         if (lv && lv.length > 1) {
           o.settings = ["quality", "speed"];
-          o.quality = { default: 0, options: [0, ...lv], forced: true, onChange: q => { if (!hl) return; hl.currentLevel = q === 0 ? -1 : hl.levels.findIndex(l => l.height === q); } };
+          o.quality = { default: 0, options: [0, ...lv], forced: true, onChange: q => {
+            if (hl) { hl.currentLevel = q === 0 ? -1 : hl.levels.findIndex(l => l.height === q); return; }
+            if (!nat) return;
+            const t0 = el.currentTime, wasPaused = el.paused, u = q === 0 ? s.r.src : (nat.find(l => l.height === q) || {}).url; if (!u) return;
+            el.src = u; el.addEventListener("loadedmetadata", () => { try { el.currentTime = t0; } catch {} if (!wasPaused) el.play().catch(() => {}); }, { once: true });
+          } };
         }
         if (window.Plyr) pl = new Plyr(el, o); else el.controls = true;
         const p = el.play(); if (p && p.catch) p.catch(() => {});
       };
-      el.addEventListener("loadedmetadata", seek);
+      el.addEventListener("loadedmetadata", seek); el.addEventListener("loadeddata", seek); el.addEventListener("canplay", seek);
       el.addEventListener("timeupdate", () => {
         st.pos = el.currentTime; st.dur = el.duration || st.dur; const n = Date.now();
         if (n - last > 4000) { last = n; ls.set(key, Math.floor(el.currentTime)); }
         if (n - lastSave > 12000) { lastSave = n; saveProgress(ctx, st.pos, st.dur); }
       });
-      el.addEventListener("playing", () => { if (!started) { started = true; touchHistory(ctx); } });
+      el.addEventListener("playing", () => { fixSeek(); if (!started) { started = true; touchHistory(ctx); } });
       el.addEventListener("pause", () => { if (!el.ended) saveProgress(ctx, st.pos, st.dur); });
       el.addEventListener("ended", () => { saveProgress(ctx, st.dur, st.dur); ls.set(key, 0); if (ctx.onNext) ctx.onNext(scr); });
       el.addEventListener("error", () => fail("media"));
-      if (/\.m3u8(\?|$)/i.test(s.r.src) && window.Hls && Hls.isSupported()) {
+      if (isHls(s.r.src) && window.Hls && Hls.isSupported()) {
         hl = new Hls({ startPosition: target > 3 ? target : -1 });
         hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
         hl.on(Hls.Events.ERROR, (e, d) => {
@@ -659,6 +691,9 @@ function initPlayer(root, items, ctx) {
           fail(d.details);
         });
         hl.loadSource(s.r.src); hl.attachMedia(el);
+      } else if (isHls(s.r.src)) {
+        el.src = s.r.src;
+        nativeLevels(s.r.src).then(lv => { if (my !== gen) return; const hs = [...new Set(lv.map(l => l.height))]; begin(hs, lv); });
       } else { el.src = s.r.src; begin(null); }
     } else if (s.r.kind === "plyr" && window.Plyr) {
       el = document.createElement("div"); el.dataset.plyrProvider = s.r.prov; el.dataset.plyrEmbedId = s.r.id; scr.appendChild(el);
@@ -846,7 +881,7 @@ async function matchImport(x) {
 const setLang = v => { lang = v; ls.set("kadr_lang", v); applyLang(); route(); };
 $("#lang").onchange = e => setLang(e.target.value); $("#lang2").onchange = e => setLang(e.target.value);
 let sOpened = 0;
-const closeSearch = () => { $("#sbar").classList.remove("on"); $("#q").blur(); };
+let closeSearch = () => { $("#sbar").classList.remove("on"); $("#q").blur(); };
 const openSearch = () => { sOpened = Date.now(); $("#sbar").classList.add("on"); setTimeout(() => $("#q").focus(), 60); };
 let lastY = window.scrollY;
 window.addEventListener("scroll", () => { const y = window.scrollY; if ($("#sbar").classList.contains("on") && Date.now() - sOpened > 700 && Math.abs(y - lastY) > 8) closeSearch(); lastY = y; }, { passive: true });
@@ -854,9 +889,38 @@ document.addEventListener("click", e => { if ($("#sbar").classList.contains("on"
 window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/search/")) closeSearch(); });
 $("#sbtn").onclick = () => $("#sbar").classList.contains("on") ? closeSearch() : openSearch();
 $("#fsearch").onclick = () => { window.scrollTo({ top: 0, behavior: "smooth" }); openSearch(); };
-$("#q").addEventListener("keydown", e => { if (e.key === "Enter") { e.preventDefault(); clearTimeout(qt); const v = e.target.value.trim(); if (v) location.hash = "#/search/" + encodeURIComponent(v); closeSearch(); } });
+const sres = $("#sres"); let qtok = 0, sact = -1;
+const hideRes = () => { sres.classList.remove("on"); sres.innerHTML = ""; sact = -1; };
+const rank = (m, v) => {
+  const w = v.toLowerCase(); let best = 0;
+  [m.title_ru, m.title_en, m.original_title].forEach(n => { n = (n || "").toLowerCase(); if (!n) return;
+    const sc = n === w ? 4 : n.startsWith(w) ? 3 : n.split(/[\s:\-–—,.!?]+/).some(x => x.startsWith(w)) ? 2 : n.includes(w) ? 1 : 0; if (sc > best) best = sc; });
+  return best * 1e6 + (+m.popularity || 0);
+};
+const closeSearch0 = closeSearch;
+closeSearch = () => { closeSearch0(); hideRes(); };
+$("#q").addEventListener("keydown", e => {
+  const items = $$("#sres a");
+  if (e.key === "ArrowDown" || e.key === "ArrowUp") { if (!items.length) return; e.preventDefault(); sact = (sact + (e.key === "ArrowDown" ? 1 : -1) + items.length) % items.length; items.forEach((a, i) => a.classList.toggle("act", i === sact)); return; }
+  if (e.key === "Enter") { e.preventDefault(); clearTimeout(qt); if (sact >= 0 && items[sact]) { location.hash = items[sact].getAttribute("href"); closeSearch(); return; } const v = e.target.value.trim(); if (v) location.hash = "#/search/" + encodeURIComponent(v); closeSearch(); }
+});
 document.addEventListener("keydown", e => { if (e.key === "Escape") closeSearch(); });
-var qt; $("#q").oninput = e => { clearTimeout(qt); const v = e.target.value.trim(); qt = setTimeout(() => { location.hash = v ? "#/search/" + encodeURIComponent(v) : "#/"; }, 450); };
+sres.addEventListener("click", () => closeSearch());
+var qt; $("#q").oninput = e => {
+  clearTimeout(qt); const v = e.target.value.trim().replace(/[%,()*\\]/g, " ").trim();
+  if (v.length < 1) { qtok++; hideRes(); return; }
+  qt = setTimeout(async () => {
+    const my = ++qtok;
+    try {
+      const r = await sb.from("titles").select("id,media_type,title_ru,title_en,original_title,release_date,poster_path,popularity").or(`title_ru.ilike.%${v}%,title_en.ilike.%${v}%,original_title.ilike.%${v}%`).order("popularity", { ascending: false }).limit(40);
+      if (my !== qtok) return;
+      const list = (r.data || []).sort((a, b) => rank(b, v) - rank(a, v)).slice(0, 5);
+      sact = -1;
+      sres.innerHTML = list.length ? list.map(m => `<a href="#/${m.media_type}/${m.id}" role="option"><img src="${m.poster_path ? im("w92", m.poster_path) : NOIMG}" alt=""><span><b>${esc(T(m))}</b><small>${Y(m)}${Y(m) ? " · " : ""}${m.media_type === "tv" ? "Сериал" : "Фильм"}</small></span></a>`).join("") : `<div class="none">Ничего не найдено</div>`;
+      sres.classList.add("on");
+    } catch { hideRes(); }
+  }, 200);
+};
 $("#burger").onclick = () => $("#gn").classList.toggle("open");
 $("#links").onclick = () => $("#gn").classList.remove("open");
 
