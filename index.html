@@ -884,7 +884,17 @@ let sOpened = 0;
 let closeSearch = () => { $("#sbar").classList.remove("on"); $("#q").blur(); };
 const openSearch = () => { sOpened = Date.now(); $("#sbar").classList.add("on"); setTimeout(() => $("#q").focus(), 60); };
 let lastY = window.scrollY;
-window.addEventListener("scroll", () => { const y = window.scrollY; if ($("#sbar").classList.contains("on") && Date.now() - sOpened > 700 && Math.abs(y - lastY) > 8) closeSearch(); lastY = y; }, { passive: true });
+const canHover = matchMedia("(hover:hover)").matches;
+window.addEventListener("scroll", () => { const y = window.scrollY; if (canHover && $("#sbar").classList.contains("on") && Date.now() - sOpened > 700 && Math.abs(y - lastY) > 8) closeSearch(); lastY = y; }, { passive: true });
+/* touch: закрываем только когда палец реально двигается по странице, а не когда клавиатура сдвигает вьюпорт */
+let tY = null;
+document.addEventListener("touchstart", e => { tY = e.touches[0].clientY; }, { passive: true });
+document.addEventListener("touchmove", e => {
+  if (tY === null || !$("#sbar").classList.contains("on") || Date.now() - sOpened < 700) return;
+  if (e.target.closest && e.target.closest("#sbar")) return;
+  if (Math.abs(e.touches[0].clientY - tY) > 12) closeSearch();
+}, { passive: true });
+document.addEventListener("touchend", () => { tY = null; }, { passive: true });
 document.addEventListener("click", e => { if ($("#sbar").classList.contains("on") && !e.target.closest("#sbar,#sbtn,#fsearch")) closeSearch(); }, true);
 window.addEventListener("hashchange", () => { if (!location.hash.startsWith("#/search/")) closeSearch(); });
 $("#sbtn").onclick = () => $("#sbar").classList.contains("on") ? closeSearch() : openSearch();
