@@ -389,6 +389,28 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 .authpg .btn.alt{color:var(--a-mute);font-size:18px;margin-top:14px}
 .authpg .af{gap:20px}
 .authpg .hint{color:var(--a-mute)}
+/* profile / history */
+:root{--g:#2a6640;--gh:#327a4c}
+.hpage{max-width:640px;margin:0 auto;padding:40px 18px 60px}
+.hhead{display:flex;align-items:center;justify-content:space-between;gap:12px;margin-bottom:18px}
+.hhead h1{font-size:clamp(24px,5vw,32px);letter-spacing:-.03em;margin:0}
+.gbtn{display:inline-flex;align-items:center;justify-content:center;height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--g);background:var(--g);color:#fff;font-size:13px;font-weight:600;line-height:1;white-space:nowrap;transition:background .2s,transform .15s}
+.gbtn:hover{background:var(--gh)}.gbtn:active{transform:scale(.96)}
+.gbtn.ghost{background:transparent;color:var(--mute);border-color:var(--line)}.gbtn.ghost:hover{background:var(--bg2);color:var(--ink)}
+.gbtn[hidden]{display:none}
+.hpage .hist{gap:8px;margin-top:0}
+.hpage .hi{grid-template-columns:52px minmax(0,1fr) auto;gap:12px;padding:10px 12px;border-radius:16px}
+.hpage .hi img{width:52px;border-radius:8px}
+.hpage .hi b{font-size:15px;font-weight:600;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.hpage .hi small{font-size:12.5px;line-height:1.35;display:block;margin-top:2px}
+.hpage .hi .acts{flex-direction:column;gap:6px;align-items:stretch}
+@media(max-width:560px){.hpage .hi{grid-template-columns:52px minmax(0,1fr)}.hpage .hi .acts{grid-column:2;flex-direction:row;justify-content:flex-start;margin-top:2px}}
+#umenu{position:fixed;z-index:200;min-width:210px;padding:6px;border-radius:14px;background:var(--navs);border:1px solid var(--line);box-shadow:0 14px 40px rgba(0,0,0,.28);display:flex;flex-direction:column}
+#umenu[hidden]{display:none}
+#umenu .um-mail{padding:8px 12px 10px;font-size:12px;color:var(--mute);border-bottom:1px solid var(--line);margin-bottom:4px;max-width:260px;overflow:hidden;text-overflow:ellipsis}
+#umenu a,#umenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 12px;border-radius:9px;font-size:14px;font-weight:500;color:var(--ink)}
+#umenu a:hover,#umenu button:hover{background:var(--bg2)}
+#umenu button{color:#e5645b}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap&subset=cyrillic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 </head>
@@ -1008,7 +1030,6 @@ function openAuth(mode) { if (!/^#\/(login|signup|profile)/.test(location.hash))
 function authPage(app, up) {
   if (me) { location.hash = "#/profile"; return; }
   app.innerHTML = `<div class="authpg"><h1>${up ? t("auth_up") : t("welcome")}</h1><p class="sub2">${up ? t("authsub") : t("signacc")}</p>
-    <button class="sbtn" type="button" id="gh"><svg viewBox="0 0 24 24"><path d="M12 .5a11.5 11.5 0 0 0-3.64 22.41c.58.1.79-.25.79-.56v-2c-3.2.7-3.88-1.37-3.88-1.37-.52-1.34-1.28-1.69-1.28-1.69-1.05-.72.08-.7.08-.7 1.16.08 1.77 1.19 1.77 1.19 1.03 1.77 2.7 1.26 3.36.96.1-.75.4-1.26.73-1.55-2.55-.29-5.24-1.28-5.24-5.69 0-1.26.45-2.29 1.19-3.1-.12-.29-.52-1.46.11-3.05 0 0 .97-.31 3.18 1.18a11 11 0 0 1 5.8 0c2.2-1.49 3.17-1.18 3.17-1.18.63 1.59.23 2.76.11 3.05.74.81 1.18 1.84 1.18 3.1 0 4.42-2.69 5.39-5.26 5.68.41.36.78 1.06.78 2.14v3.17c0 .31.21.67.8.56A11.5 11.5 0 0 0 12 .5z"/></svg>Continue with GitHub</button>
     <button class="sbtn" type="button" id="go"><svg viewBox="0 0 24 24"><path d="M21.8 12.2c0-.7-.1-1.4-.2-2H12v3.8h5.5a4.7 4.7 0 0 1-2 3.1v2.5h3.3c1.9-1.8 3-4.4 3-7.4zM12 22c2.7 0 5-.9 6.7-2.4l-3.3-2.5c-.9.6-2 1-3.4 1-2.6 0-4.8-1.8-5.600-4.100H3v2.600A10 10 0 0 0 12 22zM6.400 14c-.2-.6-.3-1.300-.3-2s.1-1.400.3-2V7.400H3a10 10 0 0 0 0 9.200zM12 5.900c1.500 0 2.800.5 3.800 1.500l2.900-2.900A10 10 0 0 0 3 7.400L6.400 10C7.200 7.700 9.400 5.900 12 5.900z"/></svg>Continue with Google</button>
     <button class="sbtn" type="button" id="fb"><svg viewBox="0 0 24 24"><path d="M24 12a12 12 0 1 0-13.900 11.900v-8.400H7.100V12h3V9.400c0-3 1.800-4.700 4.500-4.700 1.300 0 2.700.2 2.700.2v3h-1.500c-1.500 0-2 .9-2 1.900V12h3.400l-.5 3.500h-2.900v8.400A12 12 0 0 0 24 12z"/></svg>Continue with Facebook</button>
     <button class="sbtn" type="button" id="ap"><svg viewBox="0 0 24 24"><path d="M16.400 12.600c0-2.400 2-3.500 2.100-3.600-1.100-1.700-2.900-1.900-3.500-1.900-1.500-.2-2.900.9-3.700.9-.8 0-1.900-.9-3.200-.8-1.600 0-3.100 1-4 2.400-1.700 3-.4 7.400 1.200 9.800.8 1.200 1.800 2.500 3 2.400 1.200 0 1.700-.8 3.100-.8s1.900.8 3.200.8c1.300 0 2.100-1.200 2.900-2.300.9-1.300 1.300-2.600 1.300-2.700 0 0-2.400-.9-2.400-3.700zM14 5.500c.7-.8 1.100-1.900 1-3-1 0-2.100.7-2.800 1.500-.6.700-1.200 1.800-1 2.900 1.100.1 2.100-.6 2.800-1.400z"/></svg>Continue with Apple</button>
@@ -1023,7 +1044,6 @@ function authPage(app, up) {
     </form>
     <button class="btn alt" type="button" id="sw">${up ? t("haveacc") : t("noacc2")}</button></div>`;
   $("#eye").onclick = () => { const i = $("input[name=p]", app); i.type = i.type === "password" ? "text" : "password"; };
-  $("#gh").onclick = () => sb.auth.signInWithOAuth({ provider: "github", options: { redirectTo: location.origin + location.pathname } });
   /* TODO: подключить провайдеров в Supabase, затем заменить на signInWithOAuth */
   ["go","fb","ap"].forEach(id => { const b = $("#" + id); if (b) b.onclick = () => {}; });
   const fg = $("#fg"); if (fg) fg.onclick = async () => { const e = $("input[name=e]", app).value.trim(), er = $(".err", app); er.style.color = ""; if (!e) { er.textContent = t("bad"); return; } const r = await sb.auth.resetPasswordForEmail(e); er.style.color = r.error ? "" : "var(--a-ok)"; er.textContent = r.error ? r.error.message : t("resetsent"); };
@@ -1044,9 +1064,7 @@ function authPage(app, up) {
 }
 async function profilePage(app) {
   if (!me) { location.hash = "#/login"; return; }
-  app.innerHTML = `<div class="authpg"><h1>${t("prof")}</h1><p class="sub2">${t("me")} ${esc(me.email)}</p><button class="btn fill" id="out">${t("signout")}</button>
-    <h2 style="margin-top:36px;font-size:24px">История просмотров</h2><div class="hist" id="hist"><p style="color:var(--mute)">${t("loading")}</p></div></div>`;
-  $("#out").onclick = async () => { await sb.auth.signOut(); location.hash = "#/"; };
+  app.innerHTML = `<div class="hpage"><div class="hhead"><h1>История просмотров</h1><button class="gbtn ghost" id="hclr" hidden>Очистить</button></div><div class="hist" id="hist"><p style="color:var(--mute)">${t("loading")}</p></div></div>`;
   const box = $("#hist");
   try {
     const [h, p] = await Promise.all([
@@ -1057,16 +1075,17 @@ async function profilePage(app) {
     const pm = new Map((p.data || []).map(x => [x.title_id + "/" + (x.episode_id || 0), x]));
     const rows = (h.data || []).filter(x => x.titles);
     const draw = list => {
-      box.innerHTML = list.length ? `<button class="btn line sm" id="hclr" style="align-self:flex-end">Очистить историю</button>` + list.map(x => {
+      $("#hclr").hidden = !list.length;
+      box.innerHTML = list.length ? list.map(x => {
         const pr = pm.get(x.title_id + "/" + (x.episode_id || 0)), pct = pr && pr.duration_seconds ? Math.min(100, Math.round(pr.position_seconds / pr.duration_seconds * 100)) : 0;
         const ep = x.episodes ? `С${x.episodes.seasons.season_number} · Е${x.episodes.episode_number}${x.episodes.name ? " · " + esc(x.episodes.name) : ""}` : "";
         const href = x.episode_id ? `#/episode/${x.episode_id}` : `#/${x.titles.media_type}/${x.title_id}`;
         return `<div class="hi" data-id="${x.id}"><img src="${x.titles.poster_path ? im("w185", x.titles.poster_path) : NOIMG}" alt="">
           <div><b>${esc(T(x.titles))}</b><small>${ep ? ep + "<br>" : ""}${fdt(x.watched_at)}${pr ? (pr.completed ? " · просмотрено" : " · " + pct + "%") : ""}</small>${pr ? `<div class="bar2"><i style="width:${pr.completed ? 100 : pct}%"></i></div>` : ""}</div>
-          <div class="acts"><a class="btn fill sm" href="${href}">Продолжить</a><button class="btn line sm" data-del="${x.id}">Удалить</button></div></div>`;
+          <div class="acts"><a class="gbtn" href="${href}">Продолжить</a><button class="gbtn ghost" data-del="${x.id}" aria-label="Удалить">Удалить</button></div></div>`;
       }).join("") : `<p style="color:var(--mute)">История пуста.</p>`;
       $$("[data-del]", box).forEach(b => b.onclick = async () => { const d = await sb.from("watch_history").delete().eq("id", b.dataset.del); if (!d.error) { rows.splice(rows.findIndex(r => String(r.id) === b.dataset.del), 1); draw(rows); } });
-      const c = $("#hclr", box); if (c) c.onclick = async () => { if (!confirm("Очистить всю историю просмотров?")) return; const d = await sb.from("watch_history").delete().eq("user_id", me.id); if (!d.error) { rows.length = 0; draw(rows); } };
+      const c = $("#hclr"); if (c) c.onclick = async () => { if (!confirm("Очистить всю историю просмотров?")) return; const d = await sb.from("watch_history").delete().eq("user_id", me.id); if (!d.error) { rows.length = 0; draw(rows); } };
     };
     draw(rows);
   } catch (e) { box.innerHTML = `<p style="color:var(--mute)">История недоступна.</p>`; }
@@ -1075,7 +1094,22 @@ function updateSign() {
   const b = $("#sign"), u = me && me.email;
   b.classList.toggle("me", !!u); b.textContent = u ? u[0].toUpperCase() : t("signin"); b.title = u || "";
 }
-$("#sign").onclick = () => { if (me) location.hash = "#/profile"; else openAuth("in"); };
+const umenu = document.createElement("div"); umenu.id = "umenu"; umenu.hidden = true; document.body.appendChild(umenu);
+function closeMenu() { umenu.hidden = true; }
+$("#sign").onclick = ev => {
+  if (!me) { openAuth("in"); return; }
+  ev.stopPropagation();
+  if (!umenu.hidden) { closeMenu(); return; }
+  umenu.innerHTML = `<div class="um-mail">${esc(me.email)}</div><a href="#/profile" id="um-h">История просмотров</a><button type="button" id="um-o">${t("signout")}</button>`;
+  const r = ev.currentTarget.getBoundingClientRect();
+  umenu.style.top = (r.bottom + 8) + "px"; umenu.style.right = Math.max(10, innerWidth - r.right) + "px";
+  umenu.hidden = false;
+  $("#um-h").onclick = closeMenu;
+  $("#um-o").onclick = async () => { closeMenu(); await sb.auth.signOut(); location.hash = "#/"; };
+};
+document.addEventListener("click", ev => { if (!umenu.hidden && !umenu.contains(ev.target)) closeMenu(); });
+addEventListener("keydown", ev => { if (ev.key === "Escape") closeMenu(); });
+addEventListener("hashchange", closeMenu);
 sb.auth.onAuthStateChange((ev, s) => {
   const was = me && me.id; me = s ? s.user : null; accessToken = s ? s.access_token : null; updateSign();
   setTimeout(async () => { /* вне колбэка auth, чтобы не блокировать клиент */
