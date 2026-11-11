@@ -613,7 +613,7 @@ function initPlayer(root, items, ctx) {
   const scr = $("#ppS", root); if (!scr) return;
   ctx = ctx || {};
   let pl = null, hl = null, cur = 0, gen = 0, started = false;
-  const st = { pos: 0, dur: 0 }, failed = new Set();
+  const st = { pos: 0, dur: 0 }, failed = new Set(), noResume = new Set();
   /* iPhone: кнопка полноэкранного режима открывает системный плеер напрямую */
   scr.addEventListener("click", e => {
     const b = e.target.closest && e.target.closest('[data-plyr="fullscreen"]'); if (!b) return;
@@ -656,7 +656,7 @@ function initPlayer(root, items, ctx) {
     scr.innerHTML = ""; let el;
     if (s.r.kind === "video") {
       el = document.createElement("video"); el.playsInline = true; el.preload = "metadata"; scr.appendChild(el);
-      const key = "pos:" + s.r.src; let last = 0, lastSave = 0, seeked = false, recovered = false;
+      const key = "pos:" + s.r.src; let last = 0, lastSave = 0, seeked = false, recovered = 0;
       const target = startAt !== undefined ? startAt : (+ls.get(key) || 0);
       const seek = () => {
         if (seeked || !(target > 3) || el.readyState < 1) return;
@@ -665,7 +665,9 @@ function initPlayer(root, items, ctx) {
       let fixed = false;
       const fixSeek = () => { if (fixed) return; fixed = true; if (target > 3 && Math.abs(el.currentTime - target) > 5 && (!isFinite(el.duration) || target < el.duration - 8)) el.currentTime = target; };
       const fail = why => {
-        if (my !== gen) return; failed.add(i);
+        if (my !== gen) return;
+        if (target > 3 && !noResume.has(i)) { noResume.add(i); say("Не удалось продолжить с этого места, запускаем с начала"); play(i, 0); return; }
+        failed.add(i);
         const resumeAt = st.pos > 3 ? st.pos : target, n = nextFrom(i);
         if (n < 0) { if (pl) { try { pl.destroy(); } catch {} pl = null; } if (hl) { try { hl.destroy(); } catch {} hl = null; } scr.innerHTML = `<div class="pp-over"><b>Не удалось воспроизвести видео</b><span>Все источники недоступны. Попробуйте позже.</span></div>`; return; }
         say("Источник недоступен, переключаемся на резервный"); play(n, resumeAt);
@@ -695,11 +697,12 @@ function initPlayer(root, items, ctx) {
       el.addEventListener("ended", () => { saveProgress(ctx, st.dur, st.dur); ls.set(key, 0); if (ctx.onNext) ctx.onNext(scr); });
       el.addEventListener("error", () => fail("media"));
       if (isHls(s.r.src) && window.Hls && Hls.isSupported()) {
-        hl = new Hls({ startPosition: target > 3 ? target : -1 });
+        hl = new Hls();
         hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
         hl.on(Hls.Events.ERROR, (e, d) => {
           if (!d.fatal || my !== gen) return;
-          if (d.type === Hls.ErrorTypes.MEDIA_ERROR && !recovered) { recovered = true; hl.recoverMediaError(); return; }
+          if (d.type === Hls.ErrorTypes.MEDIA_ERROR && recovered < 2) { if (recovered++) hl.swapAudioCodec(); hl.recoverMediaError(); return; }
+          if (d.type === Hls.ErrorTypes.NETWORK_ERROR && recovered < 2) { recovered++; hl.startLoad(); return; }
           fail(d.details);
         });
         hl.loadSource(s.r.src); hl.attachMedia(el);
