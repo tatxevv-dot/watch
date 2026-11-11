@@ -4,6 +4,8 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>watch. — фильмы и сериалы</title>
+<link rel="icon" type="image/svg+xml" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 64 64'%3E%3Crect width='64' height='64' rx='14' fill='%231d1d1f'/%3E%3Ctext x='32' y='47' font-family='-apple-system,Helvetica,Arial,sans-serif' font-size='44' font-weight='700' text-anchor='middle' fill='%23fff'%3Ew%3C/text%3E%3C/svg%3E">
+<link rel="apple-touch-icon" href="data:image/png;base64,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">
 <style>
 :root{color-scheme:light dark;--bg:#fff;--bg2:#f5f5f7;--ink:#1d1d1f;--mute:#6e6e73;--blue:#1d1d1f;--blueh:#000;--line:#d2d2d7;--nav:rgba(255,255,255,.72);--navs:#fff}
 @media(prefers-color-scheme:dark){:root{--bg:#000;--bg2:#1d1d1f;--ink:#f5f5f7;--mute:#a1a1a6;--blue:#f5f5f7;--blueh:#fff;--line:#424245;--nav:rgba(29,29,31,.72);--navs:#161617}}
@@ -369,6 +371,7 @@ a.person{display:block;color:inherit}a.person:hover img{transform:scale(1.04)}.p
 <body>
 <header id="gn">
   <div class="gn-in">
+    <a class="logo" id="logo" href="#/" aria-label="watch — на главную">watch<span>.</span></a>
     <nav class="links" id="links" aria-label="Основная навигация">
       <a href="#/" data-r="/" data-i="home">Главная</a>
       <a href="#/movies" data-r="/movies" data-i="movies">Фильмы</a>
@@ -617,7 +620,7 @@ async function personPage(app, id) {
   if (!pid) throw new Error(t("none"));
   const load = async () => {
     const [p, c] = await Promise.all([
-      sb.from("people").select("*").eq("id", pid).maybeSingle(),
+      sb.from("people").select("*").eq("tmdb_id", pid).maybeSingle(),
       sb.from("credits").select("role,character,ord,titles(*)").eq("person_id", pid)
     ]);
     if (p.error) throw new Error(p.error.message);
@@ -625,36 +628,44 @@ async function personPage(app, id) {
     return { p: p.data, c: (c.data || []).filter(x => x.titles) };
   };
   let { p, c } = await load();
-  /* первая загрузка: просим Edge Function подтянуть биографию и данные из TMDB */
-  if (!p.biography_ru && !p.biography_en && !p.birthday && !p.details_synced_at) {
+  /* первая загрузка: Edge Function подтягивает биографию и фильмографию из TMDB */
+  if (!p.details_synced_at) {
     try { await sb.functions.invoke("sync-person", { body: { person_id: pid } }); ({ p, c } = await load()); } catch {}
   }
-  const seen = new Set(), items = c.filter(x => { const k = x.titles.id + "/" + x.role; return seen.has(k) ? false : seen.add(k); });
-  const uniq = new Map(); items.forEach(x => { if (!uniq.has(x.titles.id)) uniq.set(x.titles.id, x.titles); });
-  const known = [...uniq.values()].sort((a, b) => num(b.popularity) - num(a.popularity)).slice(0, 12);
-  const bio = (ru ? p.biography_ru || p.biography_en : p.biography_en || p.biography_ru) || p.biography || "";
+  const tmap = new Map(); c.forEach(x => tmap.set(x.titles.media_type + x.titles.tmdb_id + "/" + x.role, { m: x.titles, ch: x.character, role: x.role }));
+  const rows = [], rk = new Set();
+  (Array.isArray(p.filmography) ? p.filmography : []).forEach(f => {
+    const k = f.m + f.i + "/" + f.r, cat = tmap.get(k); rk.add(k);
+    rows.push(cat ? { href: `#/${cat.m.media_type}/${cat.m.id}`, title: T(cat.m), y: Y(cat.m) || f.y, img: cat.m.poster_path, vote: num(cat.m.vote_average), pop: num(cat.m.popularity), media: cat.m.media_type, role: f.r, ch: cat.ch || f.c }
+      : { href: "", title: f.t, y: f.y, img: f.p, vote: num(f.v), pop: num(f.pop), media: f.m, role: f.r, ch: f.c });
+  });
+  tmap.forEach((v, k) => { if (!rk.has(k)) rows.push({ href: `#/${v.m.media_type}/${v.m.id}`, title: T(v.m), y: Y(v.m), img: v.m.poster_path, vote: num(v.m.vote_average), pop: num(v.m.popularity), media: v.m.media_type, role: v.role, ch: v.ch }); });
+  const uniq = new Map(); rows.forEach(x => { const k = x.media + x.title + x.y; if (!uniq.has(k) || (!uniq.get(k).href && x.href)) uniq.set(k, x); });
+  const list = [...uniq.values()];
+  const known = list.slice().sort((a, b) => b.pop - a.pop).slice(0, 12);
+  const bio = (ru ? p.biography_ru || p.biography_en : p.biography_en || p.biography_ru) || "";
   const dep = { Acting: ["Актёр", "Actor"], Directing: ["Режиссёр", "Director"], Writing: ["Сценарист", "Writer"], Production: ["Продюсер", "Producer"] }[p.known_for_department];
   const fmtD = d => d ? new Date(d + "T00:00:00").toLocaleDateString(ru ? "ru-RU" : "en-US", { day: "numeric", month: "long", year: "numeric" }) : "";
   let age = "";
   if (p.birthday) { const b = new Date(p.birthday), e = p.deathday ? new Date(p.deathday) : new Date(); let a = e.getFullYear() - b.getFullYear(); if (e < new Date(e.getFullYear(), b.getMonth(), b.getDate())) a--; age = a >= 0 && a < 130 ? String(a) : ""; }
   const fact = (k, v) => v ? `<div><small>${k}</small><b>${esc(v)}</b></div>` : "";
   const gender = p.gender === 1 ? (ru ? "Женский" : "Female") : p.gender === 2 ? (ru ? "Мужской" : "Male") : "";
-  const films = new Set(items.map(x => x.titles.id)).size;
   const aka = Array.isArray(p.also_known_as) ? p.also_known_as.filter(x => x && x !== p.name).slice(0, 3).join(" · ") : "";
-  const roleTxt = x => x.role === "cast" ? (x.character ? (ru ? "в роли " : "as ") + x.character : (ru ? "Актёр" : "Actor")) : ((PERSON_ROLE[x.role] || [x.role, x.role])[ru ? 0 : 1] || "");
+  const roleTxt = x => x.role === "cast" ? (x.ch ? (ru ? "в роли " : "as ") + x.ch : (ru ? "Актёр" : "Actor")) : (ru ? "Режиссёр" : "Director");
   const byYear = new Map();
-  items.forEach(x => { const y = Y(x.titles) || "—"; if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(x); });
+  list.forEach(x => { const y = x.y || "—"; if (!byYear.has(y)) byYear.set(y, []); byYear.get(y).push(x); });
   const years = [...byYear.keys()].sort((a, b) => a === "—" ? 1 : b === "—" ? -1 : b - a);
+  const tile = x => `<${x.href ? `a href="${x.href}"` : 'div style="opacity:.75"'} class="card"><div class="im"><img loading="lazy" src="${x.img ? im("w342", x.img) : NOIMG}" alt="">${x.vote ? `<i class="rt ${cls(x.vote)}">${x.vote.toFixed(1)}</i>` : ""}</div><b>${esc(x.title)}</b><span class="y">${x.y || ""}</span></${x.href ? "a" : "div"}>`;
   app.innerHTML = `<div class="page"><section class="pr">
       ${p.profile_path ? `<img class="pr-ph" src="${im("w500", p.profile_path)}" alt="${esc(p.name)}">` : `<div class="pr-ph">${esc((p.name || "?")[0])}</div>`}
       <div class="pr-b"><h1>${esc(p.name)}</h1>${aka ? `<div class="aka">${esc(aka)}</div>` : ""}
-        <div class="facts">${fact(ru ? "Профессия" : "Known for", dep ? dep[ru ? 0 : 1] : "")}${fact(ru ? "Дата рождения" : "Born", fmtD(p.birthday) + (age && !p.deathday ? ` (${age})` : ""))}${fact(ru ? "Дата смерти" : "Died", p.deathday ? fmtD(p.deathday) + (age ? ` (${age})` : "") : "")}${fact(ru ? "Место рождения" : "Birthplace", p.place_of_birth)}${fact(ru ? "Пол" : "Gender", gender)}${fact(ru ? "Работ в каталоге" : "Titles in catalog", films ? String(films) : "")}${fact(ru ? "Популярность" : "Popularity", num(p.popularity) ? num(p.popularity).toFixed(1) : "")}</div>
+        <div class="facts">${fact(ru ? "Профессия" : "Known for", dep ? dep[ru ? 0 : 1] : "")}${fact(ru ? "Дата рождения" : "Born", fmtD(p.birthday) + (age && !p.deathday ? ` (${age})` : ""))}${fact(ru ? "Дата смерти" : "Died", p.deathday ? fmtD(p.deathday) + (age ? ` (${age})` : "") : "")}${fact(ru ? "Место рождения" : "Birthplace", p.place_of_birth)}${fact(ru ? "Пол" : "Gender", gender)}${fact(ru ? "Фильмов и сериалов" : "Titles", list.length ? String(list.length) : "")}${fact(ru ? "Популярность" : "Popularity", num(p.popularity) ? num(p.popularity).toFixed(1) : "")}</div>
         <h2 style="font-size:20px;margin-bottom:8px">${ru ? "Биография" : "Biography"}</h2>
         ${bio ? `<div class="bio cl" id="bio">${esc(bio)}</div>${bio.length > 420 ? `<button class="bio-more" id="bm">${ru ? "Читать полностью" : "Read more"}</button>` : ""}` : `<p style="color:var(--mute)">${ru ? "Биография пока не добавлена." : "No biography yet."}</p>`}
       </div></section>
-    ${known.length ? `<section class="sec" style="padding-left:0;padding-right:0"><div class="rh"><h2>${ru ? "Популярные фильмы" : "Known for"}</h2></div>${rail(known.map(m => card(m)).join(""))}</section>` : ""}
+    ${known.length ? `<section class="sec" style="padding-left:0;padding-right:0"><div class="rh"><h2>${ru ? "Популярные фильмы" : "Known for"}</h2></div>${rail(known.map(tile).join(""))}</section>` : ""}
     <section style="margin-top:12px"><h2 style="font-size:clamp(24px,3vw,32px);margin-top:28px">${ru ? "Вся фильмография" : "Filmography"}</h2>
-    ${years.length ? years.map(y => `<div class="yr">${y === "—" ? (ru ? "Без даты" : "No date") : y}<small>${byYear.get(y).length}</small></div>${byYear.get(y).sort((a, b) => num(b.titles.popularity) - num(a.titles.popularity)).map(x => `<a class="fl" href="#/${x.titles.media_type}/${x.titles.id}"><img loading="lazy" src="${x.titles.poster_path ? im("w92", x.titles.poster_path) : NOIMG}" alt=""><div><b>${esc(T(x.titles))}</b><span>${esc(roleTxt(x))} · ${x.titles.media_type === "tv" ? (ru ? "Сериал" : "TV") : (ru ? "Фильм" : "Movie")}</span></div>${num(x.titles.vote_average) ? `<i class="rt ${cls(num(x.titles.vote_average))}">${num(x.titles.vote_average).toFixed(1)}</i>` : ""}</a>`).join("")}`).join("") : `<p style="color:var(--mute)">${ru ? "В каталоге пока нет работ этого человека." : "No titles in the catalog yet."}</p>`}
+    ${years.length ? years.map(y => `<div class="yr">${y === "—" ? (ru ? "Без даты" : "No date") : y}<small>${byYear.get(y).length}</small></div>${byYear.get(y).sort((a, b) => b.pop - a.pop).map(x => `<${x.href ? `a href="${x.href}"` : 'div style="opacity:.75"'} class="fl"><img loading="lazy" src="${x.img ? im("w92", x.img) : NOIMG}" alt=""><div><b>${esc(x.title)}</b><span>${esc(roleTxt(x))} · ${x.media === "tv" ? (ru ? "Сериал" : "TV") : (ru ? "Фильм" : "Movie")}</span></div>${x.vote ? `<i class="rt ${cls(x.vote)}">${x.vote.toFixed(1)}</i>` : ""}</${x.href ? "a" : "div"}>`).join("")}`).join("") : `<p style="color:var(--mute)">${ru ? "Работ пока не найдено." : "No titles found yet."}</p>`}
     </section><div style="height:60px"></div></div>`;
   const bm = $("#bm", app); if (bm) bm.onclick = () => { const b = $("#bio", app), open = b.classList.toggle("cl"); bm.textContent = open ? (ru ? "Читать полностью" : "Read more") : (ru ? "Свернуть" : "Collapse"); };
 }
@@ -909,7 +920,7 @@ function initPlayer(root, items, ctx) {
   $$(".pp-src", root).forEach(b => b.onclick = () => play(+b.dataset.i, st.pos > 3 ? st.pos : undefined));
 }
 
-const DSEL = "*,title_genres(genres(id,name_ru,name_en)),credits(role,character,ord,people(id,name,profile_path)),title_sources(label,url,quality,ord)";
+const DSEL = "*,title_genres(genres(id,name_ru,name_en)),credits(role,character,ord,people(tmdb_id,name,profile_path)),title_sources(label,url,quality,ord)";
 async function detail(app, type, id) {
   let { data: m, error } = await sb.from("titles").select(DSEL).eq("id", id).maybeSingle();
   if (error) throw new Error(t("loaderr") + ": " + error.message);
@@ -934,12 +945,12 @@ async function detail(app, type, id) {
     <img class="p" src="${m.poster_path ? im("w500", m.poster_path) : NOIMG}" alt="">
     <div class="dtxt"><h1>${esc(T(m))}</h1>${m.tagline ? `<p class="tag">${esc(m.tagline)}</p>` : ""}
     <div class="facts"><span>★ ${num(m.vote_average) ? num(m.vote_average).toFixed(1) : "—"}</span><span>${Y(m)}</span>${dur ? `<span>${dur}</span>` : ""}${seasons.length ? `<span>${seasons.filter(x => x.season_number > 0).length || seasons.length} сез.</span>` : ""}${gs.map(g => `<span>${esc(GN(g))}</span>`).join("")}</div>
-    <p class="ov">${esc(OV(m)) || t("nodesc")}</p>${dr ? `<p class="tag" style="font-size:16px">${t("dir")}: ${dr.people.id ? `<a href="#/person/${dr.people.id}" style="text-decoration:underline">${esc(dr.people.name)}</a>` : esc(dr.people.name)}</p>` : ""}
+    <p class="ov">${esc(OV(m)) || t("nodesc")}</p>${dr ? `<p class="tag" style="font-size:16px">${t("dir")}: ${dr.people.tmdb_id ? `<a href="#/person/${dr.people.tmdb_id}" style="text-decoration:underline">${esc(dr.people.name)}</a>` : esc(dr.people.name)}</p>` : ""}
     <div class="btns">${m.trailer_key ? `<button class="btn fill" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : pit.length ? `<button class="btn fill" data-go="ppS">${t("watch")}</button>` : ""}<button class="btn line" id="fv">${fav ? t("inlist") : t("add")}</button></div></div></div></section>
     ${pit.length ? playerHtml(pit, m) : ""}
     ${m.media_type === "tv" ? `<section class="sec" id="epsec"></section>` : ""}
 
-    ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<a class="person" href="#/person/${p.people.id}">${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></a>`).join("")}</div></section>` : ""}
+    ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<a class="person"${p.people.tmdb_id ? ` href="#/person/${p.people.tmdb_id}"` : ""}>${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></a>`).join("")}</div></section>` : ""}
     ${row(t("similar"), sim)}<div style="height:60px"></div>`;
   initPlayer(app, pit, { title_id: m.id, episode_id: null, resume });
   if (m.media_type === "tv") seasonsUI($("#epsec", app), m, seasons);
@@ -1122,6 +1133,7 @@ var qt; $("#q").oninput = e => {
     } catch { hideRes(); }
   }, 200);
 };
+$("#logo").onclick = () => { $("#gn").classList.remove("open"); closeSearch(); if ((location.hash || "#/") === "#/") { window.scrollTo({ top: 0, behavior: "smooth" }); route(); } };
 $("#burger").onclick = () => $("#gn").classList.toggle("open");
 $("#links").onclick = () => $("#gn").classList.remove("open");
 
