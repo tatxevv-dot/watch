@@ -959,6 +959,12 @@ function initPlayer(root, items, ctx) {
       el = document.createElement("iframe");
       el.src = s.r.kind === "plyr" ? (s.r.prov === "youtube" ? `https://www.youtube-nocookie.com/embed/${s.r.id}?rel=0&autoplay=1` : `https://player.vimeo.com/video/${s.r.id}?autoplay=1`) : s.r.src;
       el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = "strict-origin-when-cross-origin"; el.title = s.title; scr.appendChild(el);
+      if (s.auto) {   // NHD: события плеера недоступны, поэтому только индикатор загрузки и ручной повтор (без циклов)
+        touchHistory(ctx);
+        const ov = document.createElement("div"); ov.className = "pp-over"; ov.innerHTML = "<b>Загрузка плеера…</b>"; scr.appendChild(ov); let done = false;
+        const tm = setTimeout(() => { if (done || my !== gen) return; ov.innerHTML = '<b>Плеер долго не отвечает</b><span>Проверьте соединение или попробуйте ещё раз.</span><button class="btn fill" id="ppRetry">Повторить</button>'; ov.querySelector("#ppRetry").onclick = () => play(i); }, 20000);
+        el.addEventListener("load", () => { done = true; clearTimeout(tm); ov.remove(); });
+      }
     }
     $$(".pp-src", root).forEach(b => b.setAttribute("aria-current", b.dataset.i == i));
     $("#ppN", root).innerHTML = `<b>${esc(s.title)}</b><span>${s.quality ? esc(s.quality) : ""}</span>`;
@@ -966,7 +972,7 @@ function initPlayer(root, items, ctx) {
   const first = () => play(0);
   $("#ppGo", root).onclick = async () => {
     const r = ctx.resume;
-    if (me && r && !r.completed && r.position_seconds > 30) {
+    if (me && r && !r.completed && r.position_seconds > 30 && items[0].r.kind === "video") {
       scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Продолжить просмотр с ${fmtT(r.position_seconds)}</b><button class="btn fill" id="ppRes">Продолжить</button><button class="btn line" id="ppRst">Начать сначала</button></div>`);
       $("#ppRes", scr).onclick = () => play(0, r.position_seconds);
       $("#ppRst", scr).onclick = () => { items.forEach(x => ls.set("pos:" + (x.r.src || ""), 0)); play(0, 0); };
@@ -986,6 +992,15 @@ async function nexstreamEmbed(payload) {
   if (!data || !data.url) throw new Error((data && data.error) || "NexStream не вернул ссылку.");
   return data.url;
 }
+/* ---- NHD Embed (https://nhdapi.com/docs): только iframe, URL строится из TMDB ID, без fetch и без postMessage ---- */
+const NHD_ORIGIN = "https://nhdapi.com";
+function nhdUrl(type, tmdb, season, episode) {
+  const id = Number(tmdb); if (!Number.isInteger(id) || id <= 0) return null;
+  if (type === "movie") return `${NHD_ORIGIN}/movie/${id}`;
+  if (type === "tv") { const s = Number(season), e = Number(episode); if (!Number.isInteger(s) || s < 0 || !Number.isInteger(e) || e < 1) return null; return `${NHD_ORIGIN}/tv/${id}/${s}/${e}`; }
+  return null;
+}
+const nhdItem = url => ({ title: "NHD Embed", note: "", url, quality: "Auto", r: { kind: "frame", src: url, host: "nhdapi.com" }, auto: true });
 async function detail(app, type, id) {
   let { data: m, error } = await sb.from("titles").select(DSEL).eq("id", id).maybeSingle();
   if (error) throw new Error(t("loaderr") + ": " + error.message);
@@ -1002,14 +1017,9 @@ async function detail(app, type, id) {
   if (gs.length) sim = (ok(await sb.from("title_genres").select("titles(*)").eq("genre_id", gs[0].id).limit(40))).map(x => x.titles).filter(x => x && x.id !== m.id && x.media_type === m.media_type && x.poster_path).slice(0, 20);
   const fav = me ? !!(await sb.from("favorites").select("title_id").eq("title_id", m.id).maybeSingle()).data : false;
   const dur = m.runtime ? m.runtime + " " + t("min") : "";
+  /* ручные источники админа идут первыми и не заменяются; NHD — автоматический источник (основной, если ручных нет) */
   let pit = playerItems(m), nexstreamError = "";
-  if (m.media_type === "movie" && !pit.length && Number(m.tmdb_id) > 0) {
-    try {
-      const url = await nexstreamEmbed({ type: "movie", tmdb_id: Number(m.tmdb_id) });
-      const source = { title: "NexStream", note: "", url, quality: "Embed" };
-      pit = [{ ...source, r: resolveSrc(url) }].filter(x => x.r);
-    } catch (e) { nexstreamError = e.message || "Не удалось получить видео NexStream."; }
-  }
+  if (m.media_type === "movie") { const u = nhdUrl("movie", m.tmdb_id); if (u) pit.push(nhdItem(u)); else if (!pit.length) nexstreamError = "Неверный TMDB ID."; }
   let seasons = [];
   if (m.media_type === "tv") { try { const r = await sb.from("seasons").select("*,episodes(id,episode_number,name,overview,still_path,runtime,air_date,episode_sources(id))").eq("title_id", m.id).order("season_number"); seasons = r.data || []; } catch {} }
   const resume = m.media_type === "movie" && pit.length ? await getResume(m.id, null) : null;
@@ -1019,7 +1029,7 @@ async function detail(app, type, id) {
     <div class="facts"><span>★ ${num(m.vote_average) ? num(m.vote_average).toFixed(1) : "—"}</span><span>${Y(m)}</span>${dur ? `<span>${dur}</span>` : ""}${seasons.length ? `<span>${seasons.filter(x => x.season_number > 0).length || seasons.length} сез.</span>` : ""}${gs.map(g => `<span>${esc(GN(g))}</span>`).join("")}</div>
     <p class="ov">${esc(OV(m)) || t("nodesc")}</p>${dr ? `<p class="tag" style="font-size:16px">${t("dir")}: ${dr.people.tmdb_id ? `<a href="#/person/${dr.people.tmdb_id}" style="text-decoration:underline">${esc(dr.people.name)}</a>` : esc(dr.people.name)}</p>` : ""}
     <div class="btns">${m.trailer_key ? `<button class="btn fill" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : pit.length ? `<button class="btn fill" data-go="ppS">${t("watch")}</button>` : ""}<button class="btn line" id="fv">${fav ? t("inlist") : t("add")}</button></div></div></div></section>
-    ${pit.length ? playerHtml(pit, m) : (nexstreamError ? `<div class="sec" style="color:var(--mute)">Не удалось загрузить NexStream: ${esc(nexstreamError)}</div>` : "")}
+    ${pit.length ? playerHtml(pit, m) : (nexstreamError ? `<div class="sec" style="color:var(--mute)">Видео недоступно: ${esc(nexstreamError)}</div>` : "")}
     ${m.media_type === "tv" ? `<section class="sec" id="epsec"></section>` : ""}
 
     ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<a class="person"${p.people.tmdb_id ? ` href="#/person/${p.people.tmdb_id}"` : ""}>${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></a>`).join("")}</div></section>` : ""}
@@ -1271,18 +1281,12 @@ async function episodePage(app, id) {
   const i = all.findIndex(x => x.id === e.id), prev = all[i - 1], next = all[i + 1];
   const srcs = (e.episode_sources || []).slice().sort((a, b) => a.ord - b.ord).map(x => ({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
   let items = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r), nexstreamError = "";
-  if (!items.length && Number(m.tmdb_id) > 0 && Number(e.episode_number) > 0) {
-    try {
-      const url = await nexstreamEmbed({ type: "tv", tmdb_id: Number(m.tmdb_id), season: Number(e.seasons.season_number), episode: Number(e.episode_number) });
-      const source = { title: "NexStream", note: "", url, quality: "Embed" };
-      items = [{ ...source, r: resolveSrc(url) }].filter(x => x.r);
-    } catch (err) { nexstreamError = err.message || "Не удалось получить видео NexStream."; }
-  }
+  { const u = nhdUrl("tv", m.tmdb_id, e.seasons.season_number, e.episode_number); if (u) items.push(nhdItem(u)); else if (!items.length) nexstreamError = "Неверный TMDB ID, сезон или серия."; }
   const code = `С${e.seasons.season_number} · Е${e.episode_number}`;
   const nav = x => `#/episode/${x.id}`;
   app.innerHTML = `<div class="page" style="padding-top:96px"><a href="#/tv/${m.id}" style="color:var(--mute)">← ${esc(T(m))}</a>
     <h1 style="margin:8px 0 4px">${esc(e.name || "Серия " + e.episode_number)}</h1><p style="color:var(--mute)">${code}${e.runtime ? " · " + e.runtime + " " + t("min") : ""}</p>
-    ${items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">${nexstreamError ? `NexStream: ${esc(nexstreamError)}` : "Для этой серии пока нет видеоисточников."}</div>`}
+    ${items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">${nexstreamError ? `Видео недоступно: ${esc(nexstreamError)}` : "Для этой серии пока нет видеоисточников."}</div>`}
     ${e.overview ? `<p class="ov" style="margin:16px 0">${esc(e.overview)}</p>` : ""}
     <div class="btns" style="margin:16px 0">${prev ? `<a class="btn line" href="${nav(prev)}">← Предыдущая</a>` : ""}${next ? `<a class="btn fill" href="${nav(next)}">Следующая серия →</a>` : ""}</div></div>`;
   if (items.length) {
