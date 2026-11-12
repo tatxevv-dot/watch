@@ -15,3 +15,19 @@ services:
         generateValue: true
       - key: ALLOWED_ORIGIN
         value: https://tatxevv-dot.github.io
+      - key: TORRSERVER_URL
+        value: http://torrserver:8090
+
+  - type: web
+    name: torrserver
+    runtime: docker
+    plan: free
+    branch: feat/nxsha-source
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: false
+    dockerCommand: sh -c "apk add --no-cache curl && curl -L https://github.com/yourok/TorrServer/releases/latest/download/TorrServer-linux-amd64 -o /usr/local/bin/torrserver && chmod +x /usr/local/bin/torrserver && /usr/local/bin/torrserver --port 8090"
+    envVars:
+      - key: PORT
+        value: "8090"
