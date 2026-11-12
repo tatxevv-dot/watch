@@ -1,4 +1,5 @@
 import { createHmac, timingSafeEqual } from 'node:crypto';
+import { spawn, execFile } from 'node:child_process';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { serve } from '@hono/node-server';
@@ -170,10 +171,10 @@ app.post('/api/torrent/search', async c => {
 });
 app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
 app.post('/api/torrent/stream', async c => {
-  let magnet, sig;
+  let magnet, sig, lang = 'orig';
   try {
     const body = await c.req.json();
-    magnet = String(body.magnet || ''); sig = String(body.sig || '');
+    magnet = String(body.magnet || ''); sig = String(body.sig || ''); lang = body.lang === 'ru' ? 'ru' : 'orig';
     if (!magnet.startsWith('magnet:?xt=urn:btih:')) throw new Error();
   } catch { return c.json({ error: 'Expected a magnet link' }, 400); }
   const admin = isAdmin(c);
@@ -209,10 +210,12 @@ app.post('/api/torrent/stream', async c => {
             const files = (st.file_stats || []).filter(f => /\.(mp4|m4v|webm|mkv|avi|mov)$/i.test(f.path || ''));
             const main = files.sort((x, y) => (y.length || 0) - (x.length || 0))[0] || st.file_stats?.[0];
             const index = main?.id || 1;
-            const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
             const expiry = Math.floor(Date.now() / 1000) + 14400;
             const base = new URL(c.req.url).origin;
-            return c.json({ streamUrl: signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry) });
+            const u = new URL('/remux', base);
+            u.searchParams.set('m', magnet); u.searchParams.set('i', String(index)); u.searchParams.set('lang', lang);
+            u.searchParams.set('exp', String(expiry)); u.searchParams.set('sig', signature(u));
+            return c.json({ streamUrl: u.href });
           }
         } else console.error('TorrServer get HTTP', r.status);
       } catch (e) { console.error('TorrServer get error:', e?.message || e); }
@@ -222,6 +225,59 @@ app.post('/api/torrent/stream', async c => {
     return c.json({ error: 'No peers yet, try again or another title' }, 504);
   } catch (e) { console.error('stream failed:', e?.message || e); return c.json({ error: 'TorrServer stream failed' }, 502); }
   finally { streaming--; }
+});
+/* MKV/любой контейнер -> фрагментированный MP4 на лету: видео без перекодирования, звук в AAC */
+let remuxing = 0;
+const probeAudio = src => new Promise(resolve => {
+  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '8000000', '-probesize', '8000000', '-select_streams', 'a', '-show_entries', 'stream=index:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
+    if (err) return resolve(null);
+    try {
+      const a = JSON.parse(out).streams || [];
+      const i = a.findIndex(s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || ''));
+      resolve(i >= 0 ? i : null);
+    } catch { resolve(null); }
+  });
+});
+app.get('/remux', async c => {
+  const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
+  if (!Number.isSafeInteger(expiry) || expiry < Date.now() / 1000 || expiry > Date.now() / 1000 + 14460 || !equal(u.searchParams.get('sig') || '', signature(u))) return c.json({ error: 'Invalid or expired video link' }, 403);
+  const magnet = u.searchParams.get('m') || '', index = Number(u.searchParams.get('i'));
+  if (!magnet.startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(index) || index < 1) return c.json({ error: 'Bad request' }, 400);
+  if (remuxing >= 2) return c.json({ error: 'Busy, retry later' }, 429);
+  remuxing++;
+  let released = false;
+  const release = () => { if (!released) { released = true; remuxing--; } };
+  try {
+    const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
+    const audio = u.searchParams.get('lang') === 'ru' ? await probeAudio(src) : null;
+    const args = ['-hide_banner', '-loglevel', 'error', '-nostdin',
+      '-protocol_whitelist', 'http,https,tcp,tls,crypto',
+      '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
+      '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts',
+      '-i', src,
+      '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
+      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
+      '-sn', '-dn', '-map_chapters', '-1',
+      '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+      '-f', 'mp4', 'pipe:1'];
+    const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    let log = '';
+    ff.stderr.on('data', d => { if (log.length < 2000) log += d; });
+    const kill = () => { try { ff.kill('SIGKILL'); } catch {} };
+    const limit = setTimeout(kill, 6 * 3600 * 1000);
+    ff.on('close', code => { clearTimeout(limit); release(); if (code && code !== 255 && log) console.error('ffmpeg:', code, log.trim()); });
+    ff.on('error', e => { console.error('ffmpeg spawn:', e?.message || e); release(); });
+    c.req.raw.signal?.addEventListener('abort', kill);
+    const body = new ReadableStream({
+      start(ctrl) {
+        ff.stdout.on('data', chunk => { try { ctrl.enqueue(new Uint8Array(chunk)); } catch { kill(); } });
+        ff.stdout.on('end', () => { try { ctrl.close(); } catch {} });
+        ff.stdout.on('error', () => { try { ctrl.close(); } catch {} });
+      },
+      cancel() { kill(); }
+    });
+    return new Response(body, { status: 200, headers: { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store', 'Accept-Ranges': 'none', 'X-Accel-Buffering': 'no' } });
+  } catch (e) { release(); console.error('remux failed:', e?.message || e); return c.json({ error: 'Remux failed' }, 502); }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
