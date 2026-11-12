@@ -6,6 +6,26 @@ function redacted(value) {
   }
   return text.replace(/https?:\/\/\S+/gi, '[URL]').replace(/[\r\n]/g, ' ').slice(0, 400);
 }
+const originalFetch = globalThis.fetch.bind(globalThis);
+globalThis.fetch = async function(input, options) {
+  const response = await originalFetch(input, options);
+  if (!response.ok) {
+    try {
+      const url = new URL(input instanceof Request ? input.url : String(input));
+      if (url.origin === 'https://web.nxsha.app' && ['/api/servers', '/api/sources'].includes(url.pathname)) {
+        console.error('[nxsha] ' + JSON.stringify({
+          event: 'upstream_denial_headers', path: url.pathname, status: response.status,
+          contentType: redacted(response.headers.get('content-type') || 'absent'),
+          server: redacted(response.headers.get('server') || 'absent'),
+          cloudflareRayPresent: response.headers.has('cf-ray'),
+          challengeIndicated: response.headers.get('cf-mitigated') === 'challenge',
+          authenticateHeaderPresent: response.headers.has('www-authenticate')
+        }));
+      }
+    } catch { /* Diagnostics must not change the upstream response. */ }
+  }
+  return response;
+};
 export async function extract(...args) {
   const started = Date.now();
   console.info('[nxsha] extraction_started');
