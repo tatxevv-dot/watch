@@ -1,0 +1,93 @@
+name: CinePro audio language probe
+
+on:
+  push:
+    branches:
+      - feat/nxsha-source
+    paths:
+      - .github/workflows/cinepro-audio-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  cinepro-audio-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Start official CinePro Core container
+        run: |
+          docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:3000:3000 \
+            -e TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --name cinepro-probe \
+            ghcr.io/cinepro-org/core:latest &
+          echo $! > /tmp/cinepro-pid
+
+      - name: Wait for API health
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:3000/health > /tmp/cinepro-health.json; then
+              echo "CinePro API is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "CinePro API did not become healthy"
+          docker logs cinepro-probe --tail 100
+          exit 2
+
+      - name: Request movie sources and inspect audio languages
+        shell: bash
+        run: |
+          set +e
+          curl -fsS --max-time 180 'http://127.0.0.1:3000/v1/movies/533535' > /tmp/cinepro-sources.json
+          result=$?
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          try:
+              data = json.loads(Path('/tmp/cinepro-sources.json').read_text())
+          except Exception:
+              data = {}
+          sources = data.get('sources') or []
+          audio = []
+          russian = []
+          for source in sources:
+              provider = (source.get('provider') or {}).get('name') or (source.get('provider') or {}).get('id') or 'unknown'
+              quality = source.get('quality') or ''
+              for track in source.get('audioTracks') or []:
+                  language = str(track.get('language') or '').lower()
+                  label = str(track.get('label') or '')
+                  is_russian = language in ('ru', 'rus', 'ru-ru') or 'russian' in (language + ' ' + label).lower() or 'дубляж' in label.lower()
+                  item = {'provider': provider, 'quality': quality, 'language': language, 'label': label[:80]}
+                  audio.append(item)
+                  if is_russian:
+                      russian.append(item)
+          report = {
+            'candidate': 'cinepro-org/core',
+            'testedFrom': 'GitHub Actions, not Render',
+            'tmdbId': 533535,
+            'sourcesFound': len(sources),
+            'audioTracksFound': len(audio),
+            'russianAudioTracks': len(russian),
+            'russianTracks': russian,
+            'allAudioTracks': audio,
+            'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
+          }
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          Path('/tmp/cinepro-report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
+          PY
+          cat /tmp/cinepro-report.json
+          echo "Probe exit code: $result"
+          exit "$result"
+
+      - name: Stop CinePro container
+        if: always()
+        run: |
+          docker stop cinepro-probe 2>/dev/null || true
