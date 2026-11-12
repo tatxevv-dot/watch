@@ -563,7 +563,7 @@ let me = null, isAdmin = false;
 /* ---------- blocks ---------- */
 function card(m, size) {
   return `<a class="card${size === "lg" ? " lg" : ""}" href="#/${m.media_type}/${m.id}"><div class="im"><img loading="lazy" src="${m.poster_path ? im("w342", m.poster_path) : NOIMG}" alt="">
-    ${num(m.vote_average) ? `<i class="rt ${cls(num(m.vote_average))}">${num(m.vote_average).toFixed(1)}</i>` : ""}</div><b>${esc(T(m))}</b><span class="y">${Y(m)}</span><span class="tsb" role="link" tabindex="0" data-ts>TorrServer</span><button type="button" class="btn line sm wbtn" data-watch data-title="${esc(T(m))}" data-year="${esc(Y(m))}">Смотреть</button></a>`;
+    ${num(m.vote_average) ? `<i class="rt ${cls(num(m.vote_average))}">${num(m.vote_average).toFixed(1)}</i>` : ""}</div><b>${esc(T(m))}</b><span class="y">${Y(m)}</span><span class="tsb" role="link" tabindex="0" data-ts>TorrServer</span><button type="button" class="btn line sm wbtn" data-watch data-title="${esc(m.original_title || m.title_en || T(m))}" data-year="${esc(Y(m))}">Смотреть</button></a>`;
 }
 const t10 = (m, n) => `<a class="t10" href="#/${m.media_type}/${m.id}" aria-label="${n}. ${esc(T(m))}"><i>${n}</i><div class="im"><img loading="lazy" src="${m.poster_path ? im("w342", m.poster_path) : NOIMG}" alt="${esc(T(m))}"></div></a>`;
 const rail = h => `<div class="rail"><button class="l" aria-label="←">‹</button><div class="scroller">${h}</div><button class="r" aria-label="→">›</button></div>`;
@@ -1502,8 +1502,12 @@ document.addEventListener("click", async e => {
     const d = await r.json().catch(() => ({}));
     if (r.status === 401) { try { localStorage.removeItem("ADMIN_TOKEN"); } catch (_) {} fail("Неверный ADMIN_TOKEN"); }
     else if (r.ok && d && d.magnet) location.href = "torrent.html?magnet=" + encodeURIComponent(d.magnet);
-    else fail();
-  } catch (_) { fail(); }
+    else if (r.status === 403) fail("Доступ запрещён (ALLOWED_ORIGIN)");
+    else if (r.status === 503) fail("Поиск не настроен (Jackett)");
+    else if (r.status === 502) fail("Jackett не отвечает");
+    else if (r.status === 404) fail();
+    else fail("Ошибка сервера " + r.status);
+  } catch (_) { fail("Нет связи с сервером (он мог спать — повторите)"); }
   b.disabled = false; b.textContent = label;
 }, true);
 </script>
