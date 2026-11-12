@@ -192,4 +192,12 @@ app.get('/proxy', async c => {
   } catch { return c.json({ error: 'Video upstream unavailable' }, 502); }
 });
 app.onError((_error, c) => c.json({ error: 'Backend error' }, 500));
+/* KEEPALIVE=1: не даёт бесплатному Render усыплять бэкенд и TorrServer (пинг раз в 9 минут) */
+if (process.env.KEEPALIVE === '1') {
+  const self = process.env.RENDER_EXTERNAL_URL;
+  setInterval(() => {
+    if (self) fetch(self + '/health', { signal: AbortSignal.timeout(20000) }).catch(() => {});
+    fetch(TORRSERVER_URL + '/echo', { signal: AbortSignal.timeout(20000) }).catch(() => {});
+  }, 9 * 60 * 1000);
+}
 serve({ fetch: app.fetch, hostname: '0.0.0.0', port: Number(process.env.PORT || 10000) });
