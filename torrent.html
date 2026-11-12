@@ -33,11 +33,22 @@ async function play(){
  try{
   const response=await fetch(BACKEND_URL+'/api/torrent/stream',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({magnet})});
   const data=await response.json();
+  try{localStorage.setItem('ADMIN_TOKEN',token);}catch(e){}
   if(!response.ok)throw new Error(data.error||'Не удалось получить поток');
   status.textContent='Поток готов. Запуск…';status.classList.add('ok');
   video.src=data.streamUrl;video.style.display='block';await video.play();
  }catch(error){status.textContent=error.message;status.classList.add('err');}
 }
+(function(){
+ const q=new URLSearchParams(location.search).get('magnet');
+ const tokenEl=document.getElementById('token');
+ try{const saved=localStorage.getItem('ADMIN_TOKEN');if(saved&&!tokenEl.value)tokenEl.value=saved;}catch(e){}
+ if(!q)return;
+ document.getElementById('magnet').value=q;
+ if(tokenEl.value.trim())play();
+ else{const st=document.getElementById('status');st.textContent='Введите ADMIN_TOKEN — воспроизведение начнётся автоматически.';tokenEl.focus();
+  tokenEl.addEventListener('change',()=>{if(tokenEl.value.trim())play();},{once:true});}
+})();
 </script>
 </body>
 </html>

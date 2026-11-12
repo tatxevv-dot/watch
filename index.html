@@ -414,6 +414,7 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 .tsb{display:inline-block;margin-top:8px;padding:5px 12px;border-radius:980px;background:var(--bg2);color:var(--ink);font-size:12px;font-weight:600;line-height:1.2;cursor:pointer;transition:background .2s}
 .tsb:hover{background:var(--line)}
 .card .tsb{display:block;width:fit-content}
+.card .wbtn{display:block;width:100%;margin-top:8px}.card .wbtn:disabled{opacity:.6;cursor:wait}.card .wmsg{display:block;margin-top:6px;font-size:12px;color:#e5645b}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap&subset=cyrillic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 </head>
@@ -562,7 +563,7 @@ let me = null, isAdmin = false;
 /* ---------- blocks ---------- */
 function card(m, size) {
   return `<a class="card${size === "lg" ? " lg" : ""}" href="#/${m.media_type}/${m.id}"><div class="im"><img loading="lazy" src="${m.poster_path ? im("w342", m.poster_path) : NOIMG}" alt="">
-    ${num(m.vote_average) ? `<i class="rt ${cls(num(m.vote_average))}">${num(m.vote_average).toFixed(1)}</i>` : ""}</div><b>${esc(T(m))}</b><span class="y">${Y(m)}</span><span class="tsb" role="link" tabindex="0" data-ts>TorrServer</span></a>`;
+    ${num(m.vote_average) ? `<i class="rt ${cls(num(m.vote_average))}">${num(m.vote_average).toFixed(1)}</i>` : ""}</div><b>${esc(T(m))}</b><span class="y">${Y(m)}</span><span class="tsb" role="link" tabindex="0" data-ts>TorrServer</span><button type="button" class="btn line sm wbtn" data-watch data-title="${esc(T(m))}" data-year="${esc(Y(m))}">Смотреть</button></a>`;
 }
 const t10 = (m, n) => `<a class="t10" href="#/${m.media_type}/${m.id}" aria-label="${n}. ${esc(T(m))}"><i>${n}</i><div class="im"><img loading="lazy" src="${m.poster_path ? im("w342", m.poster_path) : NOIMG}" alt="${esc(T(m))}"></div></a>`;
 const rail = h => `<div class="rail"><button class="l" aria-label="←">‹</button><div class="scroller">${h}</div><button class="r" aria-label="→">›</button></div>`;
@@ -1510,6 +1511,25 @@ applyLang();
 /* кнопка TorrServer на карточках: открывает torrent.html, не затрагивая переход на страницу фильма */
 document.addEventListener("click", e => { const b = e.target.closest && e.target.closest("[data-ts]"); if (!b) return; e.preventDefault(); e.stopPropagation(); location.href = "torrent.html"; }, true);
 document.addEventListener("keydown", e => { if (e.key !== "Enter" && e.key !== " ") return; const b = e.target.closest && e.target.closest("[data-ts]"); if (!b) return; e.preventDefault(); e.stopPropagation(); location.href = "torrent.html"; }, true);
+</script>
+<script>
+/* кнопка «Смотреть» на карточках: ищет magnet и открывает torrent.html?magnet=... */
+document.addEventListener("click", async e => {
+  const b = e.target.closest && e.target.closest("[data-watch]"); if (!b) return;
+  e.preventDefault(); e.stopPropagation();
+  if (b.disabled) return;
+  const card = b.closest(".card"), old = card && card.querySelector(".wmsg"); if (old) old.remove();
+  const title = b.dataset.title, year = Number(b.dataset.year) || b.dataset.year || null, label = b.textContent;
+  const fail = () => { const m = document.createElement("span"); m.className = "wmsg"; m.textContent = "Источник не найден"; b.after(m); setTimeout(() => m.remove(), 4000); };
+  b.disabled = true; b.textContent = "Ищем…";
+  try {
+    const r = await fetch("https://watch-nxsha.onrender.com/api/torrent/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, year }) });
+    const d = await r.json().catch(() => ({}));
+    const magnet = r.ok && d && (d.magnet || (d.result && d.result.magnet) || (Array.isArray(d.results) && d.results[0] && d.results[0].magnet));
+    if (magnet) location.href = "torrent.html?magnet=" + encodeURIComponent(magnet); else fail();
+  } catch (_) { fail(); }
+  b.disabled = false; b.textContent = label;
+}, true);
 </script>
 </body>
 </html>
