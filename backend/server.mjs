@@ -40,9 +40,21 @@ async function searchYts(title, year) {
   const { m, t } = pool[0];
   const name = `${m.title_long || m.title} [${t.quality}]`;
   const magnet = `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(name)}` + TRACKERS.map(x => '&tr=' + encodeURIComponent(x)).join('');
-  return { magnet, name, seeders: t.seeds || 0, size: t.size_bytes || 0 };
+  return { magnet, name, seeders: t.seeds || 0, size: t.size_bytes || 0, hash: t.hash };
 }
 const app = new Hono();
+const hits = new Map();
+const limited = (c, key, max) => {
+  const ip = (c.req.header('x-forwarded-for') || '').split(',')[0].trim() || 'unknown', k = key + ip, now = Date.now();
+  const list = (hits.get(k) || []).filter(t => now - t < 60000);
+  if (list.length >= max) { hits.set(k, list); return true; }
+  list.push(now); hits.set(k, list); if (hits.size > 5000) hits.clear();
+  return false;
+};
+const magnetSig = hash => createHmac('sha256', SIGNING_SECRET).update('magnet:' + String(hash).toLowerCase()).digest('hex');
+const isAdmin = c => equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN);
+const fromSite = c => c.req.header('origin') === ALLOWED_ORIGIN;
+let streaming = 0;
 let extracting = 0;
 const equal = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
 function signature(u) {
@@ -93,7 +105,8 @@ app.post('/api/extract', async c => {
 });
 app.use('/api/torrent/search', bodyLimit({ maxSize: 2048 }));
 app.post('/api/torrent/search', async c => {
-  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
+  if (!fromSite(c) && !isAdmin(c)) return c.json({ error: 'Forbidden' }, 403);
+  if (limited(c, 'search:', 20)) return c.json({ error: 'Too many requests' }, 429);
   let title, year;
   try {
     const body = await c.req.json();
@@ -104,18 +117,25 @@ app.post('/api/torrent/search', async c => {
   try {
     const best = await searchYts(title, year);
     if (!best) return c.json({ error: 'Source not found' }, 404);
-    return c.json(best);
+    return c.json({ magnet: best.magnet, name: best.name, seeders: best.seeders, size: best.size, sig: magnetSig(best.hash) });
   } catch { return c.json({ error: 'Torrent search failed' }, 502); }
 });
 app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
 app.post('/api/torrent/stream', async c => {
-  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
-  let magnet;
+  let magnet, sig;
   try {
     const body = await c.req.json();
-    magnet = String(body.magnet || '');
+    magnet = String(body.magnet || ''); sig = String(body.sig || '');
     if (!magnet.startsWith('magnet:?xt=urn:btih:')) throw new Error();
   } catch { return c.json({ error: 'Expected a magnet link' }, 400); }
+  const admin = isAdmin(c);
+  if (!admin) {
+    const h = new URL(magnet).searchParams.get('xt')?.replace('urn:btih:', '') || '';
+    if (!fromSite(c) || !sig || !equal(sig, magnetSig(h))) return c.json({ error: 'Forbidden' }, 403);
+    if (limited(c, 'stream:', 6)) return c.json({ error: 'Too many requests' }, 429);
+    if (streaming >= 3) return c.json({ error: 'Busy, retry later' }, 429);
+  }
+  streaming++;
   const ts = (path, body, ms = 20000) => fetch(`${TORRSERVER_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ms) });
   const sleep = ms => new Promise(r => setTimeout(r, ms));
   try {
@@ -153,6 +173,7 @@ app.post('/api/torrent/stream', async c => {
     console.error('TorrServer: no peers/metadata in time');
     return c.json({ error: 'No peers yet, try again or another title' }, 504);
   } catch (e) { console.error('stream failed:', e?.message || e); return c.json({ error: 'TorrServer stream failed' }, 502); }
+  finally { streaming--; }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
