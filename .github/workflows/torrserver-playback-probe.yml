@@ -88,13 +88,18 @@ jobs:
           import json, os, re
           from pathlib import Path
           output = Path('/tmp/ffmpeg-output.txt').read_text(errors='ignore')
+          blocks = re.split(r'(?=Stream #\d+:\d+)', output)
           audio = []
           russian = []
-          for match in re.finditer(r'Stream #\d+:\d+.*?Audio: ([^,]+),.*?(?:, (\w+)(?:/\w+)?(?: \(([^)]+)\))?)?', output):
-              codec = match.group(1)
-              language = (match.group(2) or '').lower()
-              title = match.group(3) or ''
-              is_russian = language in ('ru', 'rus', 'ru-ru') or 'russian' in (language + ' ' + title).lower() or 'дубляж' in title.lower()
+          for block in blocks:
+              stream_match = re.search(r'Stream #\d+:\d+\(([^)]*)\): Audio: ([^,\n]+)', block)
+              if not stream_match:
+                  continue
+              language = (stream_match.group(1) or '').strip().lower()
+              codec = stream_match.group(2).strip()
+              title_match = re.search(r'^\s*title\s*:\s*(.+)$', block, re.MULTILINE)
+              title = (title_match.group(1) if title_match else '').strip()
+              is_russian = language in ('ru', 'rus', 'ru-ru') or any(word in (language + ' ' + title).lower() for word in ('russian', 'дубляж', 'озвучк', 'перевод'))
               item = {'codec': codec, 'language': language, 'title': title}
               audio.append(item)
               if is_russian:
