@@ -5,8 +5,9 @@ import { serve } from '@hono/node-server';
 import upstream from './index.js';
 import { extract } from './src/extractors/nxsha.js';
 import { encodeProxyUrl } from './src/proxy.js';
-const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN } = process.env;
+const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN, TORRSERVER_URL } = process.env;
 if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 32 || !SIGNING_SECRET || SIGNING_SECRET.length < 32 || !ALLOWED_ORIGIN) throw new Error('Configure ADMIN_TOKEN, SIGNING_SECRET (32+ characters) and ALLOWED_ORIGIN');
+if (!TORRSERVER_URL) throw new Error('Configure TORRSERVER_URL');
 const app = new Hono();
 let extracting = 0;
 const equal = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
@@ -55,6 +56,40 @@ app.post('/api/extract', async c => {
     return c.json({ servers });
   } catch { return c.json({ error: 'Nxsha extraction failed; inspect source availability' }, 502); }
   finally { extracting--; }
+});
+app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
+app.post('/api/torrent/stream', async c => {
+  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
+  let magnet;
+  try {
+    const body = await c.req.json();
+    magnet = String(body.magnet || '');
+    if (!magnet.startsWith('magnet:?xt=urn:btih:')) throw new Error();
+  } catch { return c.json({ error: 'Expected a magnet link' }, 400); }
+  try {
+    const addResponse = await fetch(`${TORRSERVER_URL}/torrents`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ action: 'add', link: magnet, title: 'Torrent', save_to_db: false })
+    });
+    if (!addResponse.ok) throw new Error('TorrServer add failed');
+    const hash = new URL(magnet).searchParams.get('xt')?.replace('urn:btih:', '');
+    if (!hash) throw new Error('Invalid magnet hash');
+    for (let attempt = 0; attempt < 60; attempt++) {
+      const statusResponse = await fetch(`${TORRSERVER_URL}/torrents`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'get', hash })
+      });
+      const status = await statusResponse.json();
+      if (status.stat_string === 'Torrent working') {
+        const streamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=1`;
+        return c.json({ streamUrl });
+      }
+      await new Promise(resolve => setTimeout(resolve, 5000));
+    }
+    throw new Error('TorrServer did not become ready');
+  } catch { return c.json({ error: 'TorrServer stream failed' }, 502); }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
