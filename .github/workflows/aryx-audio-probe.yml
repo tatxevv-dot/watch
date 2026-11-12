@@ -1,35 +1,47 @@
 name: Aryx audio language probe
+
 on:
   push:
-    branches: [feat/nxsha-source]
-    paths: [tests/aryx-audio-probe.sh, .github/workflows/aryx-audio-probe.yml]
+    branches:
+      - feat/nxsha-source
+    paths:
+      - tests/aryx-audio-probe.sh
+      - tests/aryx-audio-report.py
+      - .github/workflows/aryx-audio-probe.yml
+
 permissions:
   contents: read
+
 jobs:
   aryx-audio-probe:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
+
     steps:
-      - uses: actions/checkout@v5
+      - name: Check out repository
+        uses: actions/checkout@v5
         with:
           persist-credentials: false
+
       - name: Fetch candidate
         run: git clone https://github.com/AryxK6/aryx-m3u8-scraper.git "$RUNNER_TEMP/aryx-probe"
+
       - name: Build isolated candidate image with FFmpeg
         run: |
           python3 - <<'PY'
-from pathlib import Path
-path = Path('$RUNNER_TEMP/aryx-probe/Dockerfile')
-text = path.read_text()
-marker = '# Switch to non-root user\nUSER aryx\n'
-insert = 'RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*\n\n'
-if 'apt-get install -y --no-install-recommends ffmpeg' not in text:
-    if marker not in text:
-        raise SystemExit('Expected USER aryx marker not found')
-    text = text.replace(marker, insert + marker)
-    path.write_text(text)
-PY
+          from pathlib import Path
+          path = Path('$RUNNER_TEMP/aryx-probe/Dockerfile')
+          text = path.read_text()
+          marker = '# Switch to non-root user\nUSER aryx\n'
+          insert = 'RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*\n\n'
+          if 'apt-get install -y --no-install-recommends ffmpeg' not in text:
+              if marker not in text:
+                  raise SystemExit('Expected USER aryx marker not found')
+              text = text.replace(marker, insert + marker)
+              path.write_text(text)
+          PY
           docker build -t aryx-audio-probe "$RUNNER_TEMP/aryx-probe"
+
       - name: Extract HLS and inspect audio languages
         shell: bash
         run: |
@@ -38,6 +50,7 @@ PY
             -e TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             -e TMDB_BEARER_TOKEN="${{ secrets.TMDB_BEARER_TOKEN }}" \
             --mount type=bind,source="$GITHUB_WORKSPACE/tests/aryx-audio-probe.sh",target=/app/probe.sh,readonly \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/aryx-audio-report.py",target=/app/aryx-audio-report.py,readonly \
             --entrypoint bash aryx-audio-probe /app/probe.sh
           result=$?
           echo "Probe exit code: $result"
