@@ -44,11 +44,11 @@ jobs:
       - name: Add Russian Iron Man 3 torrent
         run: |
           magnet='magnet:?xt=urn:btih:E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3&tr=http%3A%2F%2Fbt4.t-ru.org%2Fann%3Fmagnet'
-          curl -fsS --max-time 30 \
+          curl -fsS --max-time 60 \
             -X POST \
             -H 'Content-Type: application/json' \
-            -d "{\"action\":\"add\",\"link\":\"${magnet}\"}" \
-            http://127.0.0.1:8090/ \
+            -d "{\"action\":\"add\",\"link\":\"${magnet}\",\"title\":\"Iron Man 3 Russian Dub\",\"save_to_db\":false}" \
+            http://127.0.0.1:8090/torrents \
             > /tmp/torrserver-add.json
           cat /tmp/torrserver-add.json
 
@@ -56,7 +56,11 @@ jobs:
         shell: bash
         run: |
           set +e
-          curl -fsS --max-time 60 'http://127.0.0.1:8090/stream?link=magnet%3A%3Fxt%3Durn%3Abtih%3AE25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3%26tr%3Dhttp%253A%252F%252Fbt4.t-ru.org%252Fann%253Fmagnet&play=true' \
+          curl -fsS --max-time 60 \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"action":"get","hash":"E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3"}' \
+            http://127.0.0.1:8090/torrents \
             > /tmp/torrserver-stream.json
           result=$?
           python3 - <<'PY'
@@ -72,9 +76,9 @@ jobs:
             'candidate': 'TorrServer',
             'testedFrom': 'GitHub Actions, not Render',
             'movie': 'Iron Man 3',
-            'streamResponseKeys': list(data.keys()),
+            'torrentStatusKeys': list(data.keys()) if isinstance(data, dict) else [],
             'russianMarkersFound': russian,
-            'responsePreview': text[:3000],
+            'responsePreview': text[:5000],
             'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
           }
           print(json.dumps(report, indent=2, ensure_ascii=False))
