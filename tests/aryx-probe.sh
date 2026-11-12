@@ -13,9 +13,9 @@ for attempt in $(seq 1 45); do
   fi
   sleep 1
 done
-extract_status=0
+extract_status=1
 if [ "$ready" = true ]; then
-  curl -fsS --max-time 120 'http://127.0.0.1:4000/api/v1/extract?tmdb_id=533535&type=movie' > /tmp/aryx-extract.json 2>/dev/null || true
+  curl -fsS --max-time 120 'http://127.0.0.1:4000/api/v1/extract?tmdb_id=533535&type=movie' > /tmp/aryx-extract.json 2>/dev/null
   extract_status=$?
 fi
 printf '%s' "$extract_status" > /tmp/aryx-extract-status
@@ -30,6 +30,9 @@ try: extract = json.loads(Path('/tmp/aryx-extract.json').read_text())
 except Exception: pass
 try: extract_status = int(Path('/tmp/aryx-extract-status').read_text().strip())
 except Exception: extract_status = 1
+server_error = ''
+try: server_error = Path('/tmp/aryx-server.log').read_text(errors='replace')[-4000:]
+except Exception: pass
 results = extract.get('results', {})
 found = []
 for provider, result in results.items():
@@ -46,6 +49,7 @@ report = {
   'hlsUrlsFound': len(found),
   'found': found,
   'extractStatus': extract_status,
+  'serverError': server_error,
   'limitations': ['HLS URL discovery only', 'Not audio or playback verification', 'Render access not verified', 'Content permissions not verified']
 }
 Path('/tmp/aryx-report.json').write_text(json.dumps(report, indent=2) + '\n')
