@@ -25,7 +25,7 @@ jobs:
         run: |
           docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:8090:8090 \
             --name torrserver-probe \
-            ghcr.io/youfou/torrserver:latest &
+            ghcr.io/yourok/torrserver:master &
           echo $! > /tmp/torrserver-pid
 
       - name: Wait for TorrServer
