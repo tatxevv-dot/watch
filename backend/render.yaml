@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: watch-nxsha
+    runtime: docker
+    plan: free
+    branch: feat/nxsha-source
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /health
+    autoDeploy: false
+    envVars:
+      - key: ADMIN_TOKEN
+        generateValue: true
+      - key: SIGNING_SECRET
+        generateValue: true
+      - key: ALLOWED_ORIGIN
+        value: https://tatxevv-dot.github.io
+      - key: TORRSERVER_URL
+        value: https://torrserver-53gg.onrender.com
+
+  - type: web
+    name: torrserver
+    runtime: docker
+    plan: free
+    branch: feat/nxsha-source
+    dockerfilePath: ./backend/Dockerfile.torrserver
+    dockerContext: ./backend
+    healthCheckPath: /echo
+    autoDeploy: false
