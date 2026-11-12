@@ -861,22 +861,36 @@ function torrentPlayer(root, m) {
   const scr = $("#ppS", root), go = $("#ppGo", root); if (!scr || !go) return;
   const API = "https://watch-nxsha.onrender.com", items = [{ title: "Торрент", quality: "", r: { kind: "video", src: "" } }];
   let busy = false;
+  let quality = "", lang = "orig";
   const over = (msg, sub, retry) => {
     const o = scr.querySelector(".pp-over"); if (o) o.remove();
     scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>${esc(msg)}</b>${sub ? `<span>${esc(sub)}</span>` : ""}${retry ? `<button class="btn fill" data-r>Повторить</button>` : ""}</div>`);
     const b = scr.querySelector("[data-r]"); if (b) b.onclick = () => { const x = scr.querySelector(".pp-over"); if (x) x.remove(); start(); };
+  };
+  const choose = (note) => {
+    const o = scr.querySelector(".pp-over"); if (o) o.remove();
+    const st = "min-width:0;padding-left:18px;padding-right:18px";
+    scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>${esc(note || "Выберите озвучку и качество")}</b><span>${lang === "ru" ? "Русская озвучка: только раздачи, которые играет браузер (MP4/H.264)" : "Оригинальная дорожка"}</span><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn ${lang === "ru" ? "fill" : "line"}" style="${st}" data-l="ru">Русская</button><button class="btn ${lang === "orig" ? "fill" : "line"}" style="${st}" data-l="orig">Оригинал</button></div><div style="display:flex;gap:8px;flex-wrap:wrap;justify-content:center"><button class="btn fill" style="${st}" data-q="720p">720p</button><button class="btn fill" style="${st}" data-q="1080p">1080p</button><button class="btn line" style="${st}" data-q="2160p">4K</button></div></div>`);
+    scr.querySelectorAll("[data-l]").forEach(b => b.onclick = () => { lang = b.dataset.l; choose(note); });
+    scr.querySelectorAll("[data-q]").forEach(b => b.onclick = () => { quality = b.dataset.q; start(); });
   };
   const post = async (path, body) => { const r = await fetch(API + path, { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify(body) }); return { r, d: await r.json().catch(() => ({})) }; };
   const start = async () => {
     if (busy) return; busy = true;
     try {
       over("Ищем источник…", "Сервер может просыпаться — до минуты");
-      const s = await post("/api/torrent/search", { title: m.original_title || m.title_en || T(m), year: Y(m) });
-      if (s.r.status === 404) return over("Источник не найден", "Для этого фильма раздач пока нет");
+      const s = await post("/api/torrent/search", { title: m.original_title || m.title_en || T(m), year: Y(m), quality, lang, imdb: m.imdb_id || undefined });
+      if (s.r.status === 404) return choose((lang === "ru" ? "Русской озвучки" : "Раздачи") + " в " + (quality === "2160p" ? "4K" : quality) + " не нашли — выберите другое");
       if (!s.r.ok || !s.d.magnet) throw new Error("search " + s.r.status);
-      over("Готовим видео…", "Обычно 10–60 секунд");
-      const st = await post("/api/torrent/stream", { magnet: s.d.magnet, sig: s.d.sig });
+      let st;
+      for (let n = 1; n <= 6; n++) {
+        over(n === 1 ? "Готовим видео…" : "Сервер видео просыпается…", n === 1 ? "Обычно 10–60 секунд" : "Это бывает до 5 минут · попытка " + n + " из 6");
+        st = await post("/api/torrent/stream", { magnet: s.d.magnet, sig: s.d.sig });
+        if (st.r.status !== 503 && st.r.status !== 502) break;
+        await new Promise(r => setTimeout(r, 4000));
+      }
       if (st.r.status === 504) return over("Нет раздающих", "Попробуйте позже", true);
+      if (st.r.status === 503 || st.r.status === 502) return over("Сервер видео ещё просыпается", "Нажмите «Повторить» через минуту", true);
       if (!st.r.ok || !st.d.streamUrl) throw new Error("stream " + st.r.status);
       items[0].r.src = st.d.streamUrl;
       initPlayer(root, items, { title_id: m.id, episode_id: null });
@@ -884,7 +898,7 @@ function torrentPlayer(root, m) {
     } catch (e) { over("Не удалось запустить", "Сервер мог спать — повторите", true); }
     finally { busy = false; }
   };
-  go.onclick = start;
+  go.onclick = () => choose();
 }
 function initPlayer(root, items, ctx) {
   const scr = $("#ppS", root); if (!scr) return;
