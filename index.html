@@ -411,6 +411,48 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 #umenu a,#umenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 12px;border-radius:9px;font-size:14px;font-weight:500;color:var(--ink)}
 #umenu a:hover,#umenu button:hover{background:var(--bg2)}
 #umenu button{color:#e5645b}
+/* ---- CinemaPPlayer ---- */
+.cp{position:relative;max-width:980px;margin:0 auto;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;color:#fff;-webkit-tap-highlight-color:transparent}
+.cp-screen,.cp-screen>iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
+.cp.cp-fs{border-radius:0;max-width:none;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
+.cp.cp-pseudo{position:fixed;inset:0;z-index:999;max-width:none;aspect-ratio:auto;border-radius:0;height:100dvh}
+body.cp-lock{overflow:hidden}
+.cp-start{position:absolute;inset:0;width:100%;border:0;background:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),var(--img) center/cover #111;display:grid;place-items:center;cursor:pointer}
+.cp-start i{width:72px;height:72px;border-radius:50%;background:#ff3d57;display:grid;place-items:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
+.cp-start:hover i{transform:scale(1.08)}.cp-start svg{width:30px;height:30px;fill:#fff;margin-left:3px}
+.cp-load{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:12px;font-size:14px;color:#ccc;pointer-events:none}
+.cp-load span{width:28px;height:28px;border-radius:50%;border:3px solid #444;border-top-color:#ff3d57;animation:cpspin 1s linear infinite}@keyframes cpspin{to{transform:rotate(360deg)}}
+.cp-ui{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;display:flex;flex-direction:column;justify-content:space-between}
+.cp-ui.on{opacity:1}.cp-ui.on>*{pointer-events:auto}.cp-ui .cp-top{pointer-events:none}
+.cp-top{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(rgba(0,0,0,.7),transparent);font-weight:600;font-size:15px}
+.cp-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.9}
+.cp-bar{padding:28px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.85))}
+.cp-prog{display:flex;align-items:center;gap:10px;font-size:12px;font-variant-numeric:tabular-nums}
+.cp-prog input{flex:1;min-width:0}
+.cp-row{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px}.cp-g{display:flex;align-items:center;gap:2px}
+.cp-ui button{width:44px;height:44px;border:0;background:none;color:#fff;border-radius:10px;display:grid;place-items:center;cursor:pointer}
+.cp-ui button:hover:not(:disabled){background:rgba(255,255,255,.16)}.cp-ui button:disabled{opacity:.35;cursor:not-allowed}
+.cp-ui button svg{width:24px;height:24px;fill:currentColor}
+.cp-ui input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:rgba(255,255,255,.35);outline:none;accent-color:#ff3d57;touch-action:none}
+.cp-ui input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#ff3d57}
+.cp-ui input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#ff3d57}
+#cpVol{width:80px;margin-left:4px}
+.cp-menu{position:absolute;right:12px;bottom:calc(96px + env(safe-area-inset-bottom));width:min(300px,calc(100% - 24px));max-height:60%;overflow-y:auto;overscroll-behavior:contain;background:rgba(24,24,27,.97);border-radius:14px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.cp-menu[hidden]{display:none}
+.cp-ui .cp-menu .cp-mi{width:100%;height:auto;min-height:44px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;text-align:left;font-size:14px;border-radius:9px;color:#f5f5f7}
+.cp-mi em{font-style:normal;color:#a1a1a6;font-size:13px}.cp-mi.on{background:rgba(255,61,87,.22)}.cp-mi.back{font-weight:700}.cp-mi.dis{color:#8e8e93}
+div.cp-mi{display:flex}.cp-step{display:flex;align-items:center;gap:6px}.cp-ui .cp-step button{width:34px;height:34px;background:rgba(255,255,255,.12)}
+.cp-over{position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+.cp-over b{font-size:18px}.cp-over span{color:#bbb;font-size:14px}.cp-over .btn{margin:0 4px}
+.cp-toast{position:absolute;left:50%;top:14px;transform:translate(-50%,-8px);z-index:6;max-width:90%;background:rgba(24,24,27,.95);color:#fff;font-size:13px;padding:8px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:.25s}.cp-toast.on{opacity:1;transform:translate(-50%,0)}
+.cp-meta{max-width:980px;margin:12px auto 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
+.cp-badge{font-size:13px;font-weight:600;padding:4px 10px;border-radius:8px;background:var(--bg2)}.cp-badge[data-s="1"]{background:#ff3d57;color:#fff}.cp-badge[data-s="2"]{background:#1f9d55;color:#fff}
+.cp-nx{margin-left:auto}
+.cp-nextcard{display:flex;gap:14px;align-items:center;background:var(--bg2);border-radius:14px;padding:12px;margin:16px 0;max-width:980px}.cp-nextcard img{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:10px}
+.cp-nextcard small{color:var(--mute);display:block}.cp-nextcard b{display:block;margin:2px 0 8px}
+.ep.seen img{opacity:.55}.ep-seen{color:#1f9d55;font-size:12px;font-weight:600;margin-left:8px}.ep-part{color:#ff3d57;font-size:12px;font-weight:600;margin-left:8px}
+.cp-cont{margin:8px 0 14px}
+@media(max-width:640px){#cpVol{display:none}.cp-ui button{width:40px;height:40px}.cp-nextcard img{width:110px}.cp-menu{bottom:calc(88px + env(safe-area-inset-bottom))}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap&subset=cyrillic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 </head>
@@ -841,7 +883,7 @@ async function getResume(title_id, episode_id) {
 }
 function saveProgress(ctx, pos, dur, keepalive) {
   if (!me || !ctx || !ctx.title_id || !(dur > 0)) return;
-  const row = { user_id: me.id, title_id: ctx.title_id, episode_id: ctx.episode_id || null, position_seconds: Math.floor(pos), duration_seconds: Math.floor(dur), completed: pos / dur >= 0.92, updated_at: new Date().toISOString() };
+  const row = { user_id: me.id, title_id: ctx.title_id, episode_id: ctx.episode_id || null, position_seconds: Math.floor(pos), duration_seconds: Math.floor(dur), completed: ctx.vr ? !!ctx._ended : pos / dur >= 0.92, updated_at: new Date().toISOString() };
   if (keepalive && accessToken) {
     try { fetch(SB_URL + "/rest/v1/watch_progress?on_conflict=user_id,title_id,episode_id", { method: "POST", keepalive: true, headers: { apikey: SB_KEY, Authorization: "Bearer " + accessToken, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row) }); } catch {}
   } else sb.from("watch_progress").upsert(row, { onConflict: "user_id,title_id,episode_id" }).then(() => {}, () => {});
@@ -975,6 +1017,234 @@ function initPlayer(root, items, ctx) {
   $$(".pp-src", root).forEach(b => b.onclick = () => play(+b.dataset.i, st.pos > 3 ? st.pos : undefined));
 }
 
+/* ================= ПРОВАЙДЕРЫ ВИДЕО + CinemaPPlayer =================
+   Адаптеры: VidRift (основной, iframe + postMessage) и NexStream/ручные источники (резерв, старый initPlayer).
+   ВНИМАНИЕ: имена команд/событий взяты из ТЗ; формы payload (поля сообщений) собраны в одном месте — VR.send()/VR.norm() —
+   и должны быть сверены с https://vidrift.net/docs/ (во время разработки страница была недоступна). */
+const VR_ORIGIN = "https://embed.vidrift.net", CP_COLOR = "#ff3d57";
+const CP_LOGO = "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 40'><rect width='40' height='40' rx='10' fill='#ff3d57'/><path d='M16 11v18l15-9z' fill='#fff'/><text x='48' y='28' font-family='Arial' font-weight='800' font-size='22' fill='#fff'>CinemaP</text></svg>");
+const VR = {
+  id: "vidrift", origin: VR_ORIGIN,
+  buildEmbedUrl({ tmdb_id, media_type, season, episode, autoplay = true }) {
+    const id = Number(tmdb_id); if (!(id > 0)) return null;
+    let p;
+    if (media_type === "tv") { const s = Number(season), e = Number(episode); if (!(s >= 0) || !(e > 0)) return null; p = `/embed/tv/${id}/${s}/${e}`; }
+    else if (media_type === "movie") p = `/embed/movie/${id}`; else return null;
+    const q = new URLSearchParams({ brand: "CinemaP", brandColor: CP_COLOR.slice(1), brandLogo: CP_LOGO, exit: "1", fs: "parent", mobileSheets: "true",
+      hide: "progress,play,volume,skip,time,server,episodes,subtitles,settings,cast,fullscreen" });
+    if (autoplay) q.set("autoplay", "1");
+    return VR_ORIGIN + p + "?" + q.toString();
+  },
+  send(win, type, payload) { if (win) win.postMessage(Object.assign({ type }, payload || {}), VR_ORIGIN); },   // точный targetOrigin, без "*"
+  /* проверка входящего: origin, source, структура */
+  accept(ev, win) {
+    if (ev.origin !== VR_ORIGIN || !win || ev.source !== win) return null;
+    const d = ev.data; if (!d || typeof d !== "object" || typeof d.type !== "string" || d.type.indexOf("vidrift:") !== 0) return null;
+    return d;
+  },
+  item(x) { if (x == null) return null; if (typeof x === "object") { const id = x.id ?? x.value ?? x.key ?? x.name ?? x.label; return { id, label: String(x.label ?? x.name ?? x.title ?? id) }; } return { id: x, label: String(x) }; },
+  list(a) { return Array.isArray(a) ? a.map(VR.item).filter(Boolean) : []; },
+  /* нормализация состояния (getPlaybackState) */
+  getPlaybackState(raw) {
+    const s = (raw && (raw.state || raw.data)) || raw || {}, n = v => (typeof v === "number" && isFinite(v)) ? v : undefined, cur = v => { const i = VR.item(v); return i ? i.id : null; };
+    return { currentTime: n(s.currentTime), duration: n(s.duration), paused: typeof s.paused === "boolean" ? s.paused : undefined, volume: n(s.volume), speed: n(s.speed),
+      server: cur(s.server), servers: VR.list(s.servers), quality: cur(s.quality), qualities: VR.list(s.qualities), audio: cur(s.audio), audios: VR.list(s.audios),
+      subtitle: cur(s.subtitle), subtitles: VR.list(s.subtitles), subtitleStyle: s.subtitleStyle && typeof s.subtitleStyle === "object" ? s.subtitleStyle : null,
+      fit: s.fit ?? null, fits: VR.list(s.fits), pip: s.pip, cast: s.cast, speeds: VR.list(s.speeds) };
+  },
+  getCapabilities(st) { return { quality: st.qualities.length > 1, server: st.servers.length > 1, audio: st.audios.length > 1, subtitles: st.subtitles.length > 0, subtitleStyle: !!st.subtitleStyle,
+    speed: st.speed !== undefined, fit: st.fit != null, pip: st.pip === true, cast: st.cast !== false }; }
+};
+const PROVIDERS = { vidrift: VR };
+
+const fmtClock = x => isFinite(x) && x >= 0 ? fmtT(x) : "0:00";
+const SVGI = { play: "M8 5v14l11-7z", pause: "M6 5h4v14H6zM14 5h4v14h-4z", b10: "M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z", f10: "M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z",
+  set: "M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.400 2 1.600a7.500 7.500 0 0 0 0 2l-2 1.600 2 3.400 2.400-1a7 7 0 0 0 1.700 1L11 21h4l.4-2.600a7 7 0 0 0 1.700-1l2.400 1 2-3.400zM13 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z",
+  fs: "M4 9V4h5v2H6v3zm10-5h5v5h-2V6h-3zM6 15v3h3v2H4v-5zm13 0v5h-5v-2h3v-3z", pip: "M19 7H5v10h14zM3 5h18v14H3zm9 6h7v5h-7z", cast: "M3 18v3h3a3 3 0 0 0-3-3zm0-4v2a7 7 0 0 1 7 7h2a9 9 0 0 0-9-9zm0-4v2a11 11 0 0 1 11 11h2A13 13 0 0 0 3 10zm18-5H3v3h2V7h14v10h-5v2h7z", vol: "M3 9v6h4l5 5V4L7 9zm13.500 3A4.500 4.500 0 0 0 14 8v8a4.500 4.500 0 0 0 2.500-4z", mute: "M3 9v6h4l5 5V4L7 9zm13 .6L17.400 8 19.500 10 21.600 8 23 9.600 20.900 11.700 23 13.800 21.600 15.200 19.500 13.100 17.400 15.200 16 13.800 18.100 11.700z" };
+const ic = k => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SVGI[k]}"/></svg>`;
+
+/* ctx: { title_id, episode_id, tmdb_id, media_type, season, episode, resume, backdrop, name,
+          next: {label, go()} | null, prev, fallback: async (box) => void } */
+function CinemaPPlayer(box, ctx) {
+  const prov = VR, my = {}; let iframe = null, st = null, alive = true, loadTimer = null, gotMsg = false, resumed = false, pollT = null, tickT = null, hideT = null, menu = null, fsWanted = false;
+  const local = { t: 0, d: 0, paused: true, speed: 1, at: 0 }, saved = { pos: -99, at: 0 };
+  ctx.vr = true; ctx._ended = false;
+  const url = prov.buildEmbedUrl(ctx);
+  const bd = ctx.backdrop ? `--img:url(${ctx.backdrop})` : "";
+  box.innerHTML = `<div class="cp" id="cpRoot"><div class="cp-screen" id="cpScr"><button class="cp-start" id="cpGo" aria-label="Смотреть" style="${bd}"><i>${ic("play")}</i></button></div><div class="cp-toast" id="cpToast" role="status"></div></div>
+    <div class="cp-meta"><span class="cp-badge" id="cpStat"></span><span class="cp-nx" id="cpNx"></span></div>`;
+  const root = $("#cpRoot", box), scr = $("#cpScr", box), toastEl = $("#cpToast", box);
+  let tt; const say = (x, ms = 5000) => { toastEl.textContent = x; toastEl.classList.add("on"); clearTimeout(tt); if (ms) tt = setTimeout(() => toastEl.classList.remove("on"), ms); };
+  const status = r => { const el = $("#cpStat", box); if (!el) return; if (!r) { el.textContent = "Не просмотрено"; el.dataset.s = "0"; } else if (r.completed) { el.textContent = "Просмотрено"; el.dataset.s = "2"; } else if (r.position_seconds > 30) { el.textContent = "Продолжить с " + fmtT(r.position_seconds); el.dataset.s = "1"; } else { el.textContent = "Не просмотрено"; el.dataset.s = "0"; } };
+  status(ctx.resume);
+  if (ctx.next) { const nx = $("#cpNx", box); nx.innerHTML = `<button class="btn line sm" id="cpNext">Следующая серия →</button>`; $("#cpNext", box).onclick = () => ctx.next.go(); }
+
+  /* ---- сохранение прогресса: не чаще раза в 15 с, плюс пауза/серия/конец/уход со страницы ---- */
+  const nowPos = () => local.paused ? local.t : Math.min(local.d || 1e9, local.t + (Date.now() - local.at) / 1000 * local.speed);
+  const save = (force, keepalive) => {
+    if (!me || !(local.d > 0)) return; const p = nowPos(), n = Date.now();
+    if (!force && (n - saved.at < 15000 || Math.abs(p - saved.pos) < 5)) return;
+    if (!ctx._ended && p < 1) return;
+    saved.pos = p; saved.at = n; saveProgress(ctx, ctx._ended ? local.d : p, local.d, keepalive);
+    ctx.resume = { position_seconds: Math.floor(ctx._ended ? local.d : p), duration_seconds: Math.floor(local.d), completed: ctx._ended }; status(ctx.resume);
+  };
+  const flush = () => save(true, true);
+  window.addEventListener("pagehide", flush); const vis = () => { if (document.hidden) flush(); }; document.addEventListener("visibilitychange", vis);
+
+  /* ---- UI управления ---- */
+  let ui = null;
+  const buildUI = () => {
+    root.insertAdjacentHTML("beforeend", `<div class="cp-ui" id="cpUi"><div class="cp-top"><img src="${CP_LOGO}" alt="CinemaP" height="22"><span>${esc(ctx.name || "")}</span></div>
+      <div class="cp-bar"><div class="cp-prog"><span id="cpCur">0:00</span><input type="range" id="cpSeek" min="0" max="1000" value="0" aria-label="Перемотка"><span id="cpDur">0:00</span></div>
+      <div class="cp-row"><div class="cp-g"><button id="cpPlay" aria-label="Пауза/воспроизведение">${ic("play")}</button><button id="cpB" aria-label="Назад 10 секунд">${ic("b10")}</button><button id="cpF" aria-label="Вперёд 10 секунд">${ic("f10")}</button>
+        <button id="cpMute" aria-label="Звук">${ic("vol")}</button><input type="range" id="cpVol" min="0" max="100" value="100" aria-label="Громкость"></div>
+        <div class="cp-g"><button id="cpSet" class="txt" aria-label="Настройки">${ic("set")}</button><button id="cpCast" aria-label="Cast">${ic("cast")}</button><button id="cpPip" aria-label="Картинка в картинке">${ic("pip")}</button><button id="cpFs" aria-label="На весь экран">${ic("fs")}</button></div></div></div><div class="cp-menu" id="cpMenu" hidden></div></div>`);
+    ui = { el: $("#cpUi", root), seek: $("#cpSeek", root), cur: $("#cpCur", root), dur: $("#cpDur", root), play: $("#cpPlay", root), vol: $("#cpVol", root), mute: $("#cpMute", root), menu: $("#cpMenu", root) };
+    const cmd = (t, p) => prov.send(iframe && iframe.contentWindow, t, p);
+    ui.play.onclick = () => cmd(local.paused ? "vidrift:play" : "vidrift:pause");
+    $("#cpB", root).onclick = () => cmd("vidrift:skip", { seconds: -10 }); $("#cpF", root).onclick = () => cmd("vidrift:skip", { seconds: 10 });
+    let seeking = false; ui.seek.oninput = () => { seeking = true; ui.cur.textContent = fmtClock(ui.seek.value / 1000 * local.d); };
+    ui.seek.onchange = () => { seeking = false; const target = ui.seek.value / 1000 * local.d; cmd("vidrift:skip", { seconds: target - nowPos() }); local.t = target; local.at = Date.now(); };
+    ui.seek.onpointerdown = () => { seeking = true; }; my.seeking = () => seeking;
+    ui.vol.oninput = () => cmd("vidrift:set", { key: "volume", value: ui.vol.value / 100 });
+    ui.mute.onclick = () => cmd("vidrift:set", { key: "volume", value: (st && st.volume > 0) ? 0 : 1 });
+    $("#cpSet", root).onclick = e => { e.stopPropagation(); openMenu("main"); };
+    $("#cpCast", root).onclick = () => cmd("vidrift:cast");
+    const pip = $("#cpPip", root); pip.onclick = () => cmd("vidrift:set", { key: "pip", value: true });
+    $("#cpFs", root).onclick = toggleFs;
+    root.addEventListener("pointermove", showUi); root.addEventListener("click", e => { if (!e.target.closest(".cp-ui")) showUi(); });
+    document.addEventListener("click", docClick);
+    tickT = setInterval(draw, 250); pollT = setInterval(() => { if (!document.hidden) cmd("vidrift:get-state"); }, 3000);
+    cmd("vidrift:get-state");
+  };
+  const docClick = e => { if (menu && !e.target.closest(".cp-menu") && !e.target.closest("#cpSet")) closeMenu(); };
+  const showUi = () => { if (!ui) return; ui.el.classList.add("on"); clearTimeout(hideT); hideT = setTimeout(() => { if (!menu && !local.paused) ui.el.classList.remove("on"); }, 3500); };
+  const draw = () => {
+    if (!ui) return; const p = nowPos();
+    if (!my.seeking()) { ui.seek.value = local.d > 0 ? Math.round(p / local.d * 1000) : 0; ui.cur.textContent = fmtClock(p); }
+    ui.dur.textContent = fmtClock(local.d); ui.play.innerHTML = ic(local.paused ? "play" : "pause");
+    if (st) { const caps = prov.getCapabilities(st); $("#cpPip", root).disabled = !caps.pip; $("#cpPip", root).title = caps.pip ? "" : "Недоступно для этого источника";
+      $("#cpCast", root).disabled = !caps.cast; ui.vol.value = Math.round((st.volume ?? 1) * 100); ui.mute.innerHTML = ic(st.volume === 0 ? "mute" : "vol"); }
+  };
+  const toggleFs = () => {   // fs=parent: полноэкранный режим — на нашей обёртке, чтобы наши элементы остались видны
+    const d = document, el = root;
+    if (d.fullscreenElement || d.webkitFullscreenElement) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); return; }
+    const rq = el.requestFullscreen || el.webkitRequestFullscreen;
+    if (rq) { try { const r = rq.call(el); if (r && r.catch) r.catch(() => say("Полноэкранный режим недоступен")); } catch { say("Полноэкранный режим недоступен"); } }
+    else { root.classList.toggle("cp-pseudo"); document.body.classList.toggle("cp-lock", root.classList.contains("cp-pseudo")); /* iPhone: системный fullscreen для iframe недоступен, поверх него наши меню показать нельзя */ }
+  };
+  const onFsChange = () => root.classList.toggle("cp-fs", document.fullscreenElement === root || document.webkitFullscreenElement === root);
+  document.addEventListener("fullscreenchange", onFsChange); document.addEventListener("webkitfullscreenchange", onFsChange);
+
+  /* ---- меню настроек: только реальные списки из state ---- */
+  const closeMenu = () => { menu = null; if (ui) ui.menu.hidden = true; };
+  const cmd2 = (key, value) => prov.send(iframe && iframe.contentWindow, "vidrift:set", { key, value });
+  function openMenu(page) {
+    if (!ui || !st) { say("Настройки появятся после загрузки плеера"); return; }
+    menu = page; const caps = prov.getCapabilities(st), M = ui.menu; M.hidden = false; showUi();
+    const same = (a, b) => a != null && String(a) === String(b);
+    const pick = (title, items, cur, key) => { M.innerHTML = `<button class="cp-mi back" data-b>‹ ${title}</button>` + (items.length ? items.map((x, i) => `<button class="cp-mi${same(x.id, cur) ? " on" : ""}" data-i="${i}">${esc(x.label)}</button>`).join("") : `<div class="cp-mi dis">Недоступно для этого источника</div>`);
+      M.onclick = e => { const b = e.target.closest("button"); if (!b) return; if ("b" in b.dataset) return openMenu("main"); const it = items[+b.dataset.i]; if (it) { cmd2(key, it.id); setTimeout(() => prov.send(iframe.contentWindow, "vidrift:get-state"), 400); closeMenu(); } }; };
+    if (page === "main") {
+      const row = (k, label, avail, val) => `<button class="cp-mi${avail ? "" : " dis"}" data-p="${k}" ${avail ? "" : "disabled"}><span>${label}</span><em>${avail ? esc(val || "") : "недоступно"}</em></button>`;
+      const lab = (arr, id) => (arr.find(x => String(x.id) === String(id)) || {}).label;
+      M.innerHTML = row("quality", "Качество", caps.quality, lab(st.qualities, st.quality)) + row("server", "Сервер", caps.server, lab(st.servers, st.server)) + row("audio", "Аудиодорожка", caps.audio, lab(st.audios, st.audio))
+        + row("subs", "Субтитры", caps.subtitles, lab(st.subtitles, st.subtitle) || "Выкл") + row("substyle", "Настройки субтитров", caps.subtitleStyle, "") + row("speed", "Скорость", caps.speed, (st.speed || 1) + "×") + row("fit", "Fit / Fill / Stretch", caps.fit, String(st.fit || ""));
+      M.onclick = e => { const b = e.target.closest("[data-p]"); if (b && !b.disabled) openMenu(b.dataset.p); };
+    } else if (page === "quality") pick("Качество", st.qualities, st.quality, "quality");
+    else if (page === "server") pick("Сервер", st.servers, st.server, "server");
+    else if (page === "audio") pick("Аудиодорожка", st.audios, st.audio, "audio");
+    else if (page === "subs") pick("Субтитры", st.subtitles, st.subtitle, "subtitle");
+    else if (page === "speed") { const sp = (st.speeds.length ? st.speeds : [0.5, 0.75, 1, 1.25, 1.5, 2].map(x => ({ id: x, label: x + "×" }))); pick("Скорость", sp, st.speed, "speed"); }
+    else if (page === "fit") { const f = st.fits.length ? st.fits : ["fit", "fill", "stretch"].map(x => ({ id: x, label: x[0].toUpperCase() + x.slice(1) })); pick("Режим кадра", f, st.fit, "fit"); }
+    else if (page === "substyle") {
+      const s = st.subtitleStyle || {}, keys = Object.keys(s).filter(k => typeof s[k] === "number" || typeof s[k] === "boolean");
+      M.innerHTML = `<button class="cp-mi back" data-b>‹ Субтитры: оформление</button>` + (keys.length ? keys.map(k => typeof s[k] === "boolean" ? `<button class="cp-mi${s[k] ? " on" : ""}" data-t="${esc(k)}">${esc(k)}</button>` : `<div class="cp-mi"><span>${esc(k)}</span><span class="cp-step"><button data-k="${esc(k)}" data-d="-1">−</button><b>${s[k]}</b><button data-k="${esc(k)}" data-d="1">+</button></span></div>`).join("") : `<div class="cp-mi dis">Недоступно для этого источника</div>`);
+      M.onclick = e => { const b = e.target.closest("button"); if (!b) return; if ("b" in b.dataset) return openMenu("main"); const n = Object.assign({}, st.subtitleStyle);
+        if (b.dataset.t) n[b.dataset.t] = !n[b.dataset.t]; else if (b.dataset.k) { const v = n[b.dataset.k], step = Math.abs(v) >= 10 ? 2 : (Math.abs(v) >= 1 ? 0.25 : 0.1); n[b.dataset.k] = Math.round((v + step * +b.dataset.d) * 100) / 100; } else return;
+        cmd2("subtitleStyle", n); st.subtitleStyle = n; openMenu("substyle"); };
+    }
+  }
+
+  /* ---- единый обработчик сообщений ---- */
+  const goNext = () => { if (ctx.next) ctx.next.go(); };
+  const sendNextInfo = () => prov.send(iframe && iframe.contentWindow, "vidrift:nextup-info", { next: ctx.next ? { season: ctx.next.season, episode: ctx.next.episode, title: ctx.next.label } : null });
+  const onMsg = ev => {
+    const d = prov.accept(ev, iframe && iframe.contentWindow); if (!d) return;
+    if (!gotMsg) { gotMsg = true; clearTimeout(loadTimer); say("", 1); }
+    const num = v => (typeof v === "number" && isFinite(v)) ? v : null, T = d.type.slice(8);
+    const upd = (t, du, paused) => { if (num(t) !== null) { local.t = t; local.at = Date.now(); } if (num(du) > 0) local.d = du; if (typeof paused === "boolean") { if (paused !== local.paused) { local.t = nowPos(); local.at = Date.now(); } local.paused = paused; } };
+    switch (T) {
+      case "state": { st = prov.getPlaybackState(d); upd(st.currentTime, st.duration, st.paused); if (st.speed) local.speed = st.speed; if (!resumed) doResume(); sendNextInfo(); draw(); break; }
+      case "progress": { upd(num(d.currentTime) ?? num(d.time) ?? num(d.position), num(d.duration), false); if (!started) { started = true; touchHistory(ctx); } if (!resumed) doResume(); save(false); break; }
+      case "paused": upd(num(d.currentTime), num(d.duration), true); save(true); break;
+      case "unpaused": upd(num(d.currentTime), num(d.duration), false); ctx._ended = false; break;
+      case "ui-visible": if (ui) ui.el.classList.add("on"); break;
+      case "ui-hidden": if (ui && !menu) ui.el.classList.remove("on"); break;
+      case "episode": { const s = num(d.season), e = num(d.episode); save(true); if (s !== null && e !== null && (s !== ctx.season || e !== ctx.episode) && ctx.goEpisode) ctx.goEpisode(s, e); break; }
+      case "nextup": if (ctx.next) say("Дальше: " + ctx.next.label, 8000); break;
+      case "nextup-play": goNext(); break;
+      case "ended": ctx._ended = true; local.paused = true; local.t = local.d || local.t; save(true, true);
+        if (ctx.next) { let n = 5; const o = document.createElement("div"); o.className = "cp-over"; o.innerHTML = `<b>Серия завершена</b><span>Следующая: ${esc(ctx.next.label)} — через <i id="cpCd">${n}</i> с</span><div><button class="btn fill" id="cpNow">Смотреть сейчас</button> <button class="btn line" id="cpCancel">Отмена</button></div>`; root.appendChild(o);
+          const iv = setInterval(() => { n--; const c = $("#cpCd", o); if (c) c.textContent = n; if (n <= 0) { clearInterval(iv); goNext(); } }, 1000); my.iv = iv; $("#cpNow", o).onclick = () => { clearInterval(iv); goNext(); }; $("#cpCancel", o).onclick = () => { clearInterval(iv); o.remove(); }; }
+        else say("Просмотр завершён", 0);
+        break;
+      case "exit": save(true, true); if (document.fullscreenElement) document.exitFullscreen(); if (history.length > 1) history.back(); break;
+      case "command-error": say("Плеер не выполнил команду" + (d.command ? " (" + String(d.command).slice(0, 40) + ")" : "") + (d.message ? ": " + String(d.message).slice(0, 80) : "")); break;
+      case "mobile-panel": root.classList.toggle("cp-sheet", !!d.open); break;
+      case "fullscreen": if (d.fullscreen === true && !document.fullscreenElement) toggleFs(); else if (d.fullscreen === false && document.fullscreenElement) document.exitFullscreen(); break;
+    }
+  };
+  let started = false;
+  const doResume = () => { const r = ctx.resume; resumed = true; if (!ctx.startAt) return; prov.send(iframe.contentWindow, "vidrift:resume", { time: ctx.startAt, position: ctx.startAt }); };
+
+  /* ---- запуск iframe: один экземпляр, по клику ---- */
+  const fail = (msg, canRetry = true) => {
+    clearTimeout(loadTimer); if (!alive) return; scr.innerHTML = `<div class="cp-over"><b>${esc(msg)}</b><div>${canRetry ? `<button class="btn fill" id="cpRetry">Повторить</button> ` : ""}${ctx.fallback ? `<button class="btn line" id="cpFb">Резервный плеер</button>` : ""}</div></div>`;
+    const r = $("#cpRetry", scr); if (r) r.onclick = () => launch(ctx.startAt); const f = $("#cpFb", scr); if (f) f.onclick = () => { destroy(); ctx.fallback(box); };
+  };
+  const launch = startAt => {
+    if (!url) return fail("Для этого видео нет TMDB-идентификатора", false);
+    if (!navigator.onLine) return fail("Нет подключения к интернету");
+    ctx.startAt = startAt > 3 ? startAt : 0; gotMsg = false; resumed = false; started = false; closeMenu(); if (ui) { ui.el.remove(); ui = null; clearInterval(tickT); clearInterval(pollT); }
+    scr.innerHTML = `<div class="cp-load"><span></span>Загрузка плеера…</div>`; iframe = document.createElement("iframe");
+    iframe.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; iframe.allowFullscreen = true; iframe.referrerPolicy = "strict-origin-when-cross-origin"; iframe.title = ctx.name || "CinemaP";
+    iframe.addEventListener("load", () => { if (!alive) return; scr.querySelector(".cp-load")?.remove(); buildUI(); showUi(); });
+    iframe.addEventListener("error", () => fail("Не удалось загрузить плеер VidRift"));
+    iframe.src = url; scr.appendChild(iframe);
+    // успешный load iframe ≠ работающее видео: ждём хотя бы одно сообщение от плеера
+    loadTimer = setTimeout(() => { if (!gotMsg) fail("VidRift не отвечает. Возможно, видео недоступно или сервис временно не работает."); }, 15000);
+  };
+  const lost = () => { if (iframe) say("Потеряно соединение с интернетом", 0); }, back = () => { say("Соединение восстановлено", 2500); };
+  window.addEventListener("offline", lost); window.addEventListener("online", back);
+  window.addEventListener("message", onMsg);
+  $("#cpGo", box).onclick = () => {
+    const r = ctx.resume;
+    if (me && r && !r.completed && r.position_seconds > 30) {
+      scr.insertAdjacentHTML("beforeend", `<div class="cp-over"><b>Продолжить с ${fmtT(r.position_seconds)}?</b><div><button class="btn fill" id="cpRes">Продолжить</button> <button class="btn line" id="cpRst">Начать сначала</button></div></div>`);
+      $("#cpRes", scr).onclick = () => launch(r.position_seconds);
+      $("#cpRst", scr).onclick = () => { ctx.resume = null; status(null); if (me) sb.from("watch_progress").delete().eq("user_id", me.id).eq("title_id", ctx.title_id).is("episode_id", ctx.episode_id || null).then(() => {}, () => {}); launch(0); };
+    } else launch(r && r.completed ? 0 : 0);
+  };
+  const destroy = () => {
+    if (!alive) return; flush(); alive = false; clearTimeout(loadTimer); clearInterval(tickT); clearInterval(pollT); clearTimeout(hideT); clearTimeout(tt); clearInterval(my.iv);
+    window.removeEventListener("message", onMsg); window.removeEventListener("pagehide", flush); window.removeEventListener("offline", lost); window.removeEventListener("online", back);
+    document.removeEventListener("visibilitychange", vis); document.removeEventListener("click", docClick); document.removeEventListener("fullscreenchange", onFsChange); document.removeEventListener("webkitfullscreenchange", onFsChange);
+    document.body.classList.remove("cp-lock"); if (iframe) { iframe.src = "about:blank"; iframe.remove(); iframe = null; }
+  };
+  window.addEventListener("hashchange", destroy, { once: true });
+  return { destroy, el: root };
+}
+
+/* резервный плеер: ручные источники + NexStream (старая реализация, не удалена) */
+async function legacyFallback(box, m, payload, manual, backdrop, ctx0) {
+  box.innerHTML = `<div class="pp-over" style="position:static;padding:24px"><b>Загружаем резервный плеер…</b></div>`;
+  let items = (manual || []).slice(), err = "";
+  try { const url = await nexstreamEmbed(payload); const r = resolveSrc(url); if (r) items.push({ title: "NexStream", note: "", url, quality: "Embed", r }); } catch (e) { err = e.message || "Ошибка NexStream"; }
+  if (!items.length) { box.innerHTML = `<div class="pp-over" style="position:static;padding:24px"><b>Резервный источник недоступен</b><span>${esc(err)}</span></div>`; return; }
+  box.innerHTML = playerHtml(items, { backdrop_path: backdrop }); initPlayer(box, items, { title_id: ctx0.title_id, episode_id: ctx0.episode_id, resume: ctx0.resume });
+}
+
 const DSEL = "*,title_genres(genres(id,name_ru,name_en)),credits(role,character,ord,people(tmdb_id,name,profile_path)),title_sources(label,url,quality,ord)";
 async function nexstreamEmbed(payload) {
   const { data, error } = await sb.functions.invoke("nexstream-embed", { body: payload });
@@ -1003,28 +1273,26 @@ async function detail(app, type, id) {
   const fav = me ? !!(await sb.from("favorites").select("title_id").eq("title_id", m.id).maybeSingle()).data : false;
   const dur = m.runtime ? m.runtime + " " + t("min") : "";
   let pit = playerItems(m), nexstreamError = "";
-  if (m.media_type === "movie" && !pit.length && Number(m.tmdb_id) > 0) {
-    try {
-      const url = await nexstreamEmbed({ type: "movie", tmdb_id: Number(m.tmdb_id) });
-      const source = { title: "NexStream", note: "", url, quality: "Embed" };
-      pit = [{ ...source, r: resolveSrc(url) }].filter(x => x.r);
-    } catch (e) { nexstreamError = e.message || "Не удалось получить видео NexStream."; }
-  }
+  const useVr = m.media_type === "movie" && Number(m.tmdb_id) > 0;
   let seasons = [];
   if (m.media_type === "tv") { try { const r = await sb.from("seasons").select("*,episodes(id,episode_number,name,overview,still_path,runtime,air_date,episode_sources(id))").eq("title_id", m.id).order("season_number"); seasons = r.data || []; } catch {} }
-  const resume = m.media_type === "movie" && pit.length ? await getResume(m.id, null) : null;
+  const resume = m.media_type === "movie" && (pit.length || useVr) ? await getResume(m.id, null) : null;
   app.innerHTML = `<section class="dhero" style="--img:url(${m.backdrop_path ? im("w1280", m.backdrop_path) : ""})"><div class="in">
     <img class="p" src="${m.poster_path ? im("w500", m.poster_path) : NOIMG}" alt="">
     <div class="dtxt"><h1>${esc(T(m))}</h1>${m.tagline ? `<p class="tag">${esc(m.tagline)}</p>` : ""}
     <div class="facts"><span>★ ${num(m.vote_average) ? num(m.vote_average).toFixed(1) : "—"}</span><span>${Y(m)}</span>${dur ? `<span>${dur}</span>` : ""}${seasons.length ? `<span>${seasons.filter(x => x.season_number > 0).length || seasons.length} сез.</span>` : ""}${gs.map(g => `<span>${esc(GN(g))}</span>`).join("")}</div>
     <p class="ov">${esc(OV(m)) || t("nodesc")}</p>${dr ? `<p class="tag" style="font-size:16px">${t("dir")}: ${dr.people.tmdb_id ? `<a href="#/person/${dr.people.tmdb_id}" style="text-decoration:underline">${esc(dr.people.name)}</a>` : esc(dr.people.name)}</p>` : ""}
-    <div class="btns">${m.trailer_key ? `<button class="btn fill" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : pit.length ? `<button class="btn fill" data-go="ppS">${t("watch")}</button>` : ""}<button class="btn line" id="fv">${fav ? t("inlist") : t("add")}</button></div></div></div></section>
-    ${pit.length ? playerHtml(pit, m) : (nexstreamError ? `<div class="sec" style="color:var(--mute)">Не удалось загрузить NexStream: ${esc(nexstreamError)}</div>` : "")}
+    <div class="btns">${(useVr || pit.length) ? `<button class="btn fill" data-go="${useVr ? "vrBox" : "ppS"}">${t("watch")}</button>${m.trailer_key ? `<button class="btn line" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : ""}` : m.trailer_key ? `<button class="btn fill" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : ""}<button class="btn line" id="fv">${fav ? t("inlist") : t("add")}</button></div></div></div></section>
+    ${useVr ? `<section class="sec" id="vrBox"></section>` : pit.length ? playerHtml(pit, m) : (nexstreamError ? `<div class="sec" style="color:var(--mute)">Не удалось загрузить NexStream: ${esc(nexstreamError)}</div>` : "")}
     ${m.media_type === "tv" ? `<section class="sec" id="epsec"></section>` : ""}
 
     ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<a class="person"${p.people.tmdb_id ? ` href="#/person/${p.people.tmdb_id}"` : ""}>${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></a>`).join("")}</div></section>` : ""}
     ${row(t("similar"), sim)}<div style="height:60px"></div>`;
-  initPlayer(app, pit, { title_id: m.id, episode_id: null, resume });
+  if (useVr) {
+    const bd = m.backdrop_path ? im("w1280", m.backdrop_path) : "";
+    CinemaPPlayer($("#vrBox", app), { title_id: m.id, episode_id: null, tmdb_id: m.tmdb_id, media_type: "movie", name: T(m), backdrop: bd, resume,
+      fallback: box => legacyFallback(box, m, { type: "movie", tmdb_id: Number(m.tmdb_id) }, pit, m.backdrop_path ? im("w780", m.backdrop_path) : "", { title_id: m.id, episode_id: null, resume }) });
+  } else initPlayer(app, pit, { title_id: m.id, episode_id: null, resume });
   if (m.media_type === "tv") seasonsUI($("#epsec", app), m, seasons);
   let cur = fav;
   $("#fv").onclick = async e => {
@@ -1250,13 +1518,23 @@ function seasonsUI(box, m, seasons) {
   }
   const real = seasons.filter(x => x.season_number > 0), first = (real[0] || seasons[0]).season_number;
   let sel = +ls.get("season:" + m.id) || first; if (!seasons.some(x => x.season_number === sel)) sel = first;
+  const prog = new Map();
+  if (me) sb.from("watch_progress").select("episode_id,position_seconds,completed,updated_at").eq("title_id", m.id).not("episode_id", "is", null).then(r => { (r.data || []).forEach(x => prog.set(x.episode_id, x)); draw(); }, () => {});
+  const contBtn = () => {
+    if (!prog.size) return "";
+    const flat = seasons.slice().sort((a, b) => a.season_number - b.season_number).flatMap(s => (s.episodes || []).slice().sort((a, b) => a.episode_number - b.episode_number).map(e => ({ e, s })));
+    const part = [...prog.values()].filter(x => !x.completed && x.position_seconds > 30).sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0];
+    let tgt = part && flat.find(x => x.e.id === part.episode_id), lbl = "Продолжить";
+    if (!tgt) { const done = [...prog.values()].filter(x => x.completed).sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0], i = done ? flat.findIndex(x => x.e.id === done.episode_id) : -1; tgt = i >= 0 ? flat[i + 1] : null; lbl = "Следующая серия"; }
+    return tgt ? `<p class="cp-cont"><a class="btn fill" href="#/episode/${tgt.e.id}">${lbl}: С${tgt.s.season_number} · Е${tgt.e.episode_number}</a></p>` : "";
+  };
   const draw = () => {
     const sn = seasons.find(x => x.season_number === sel), eps = (sn.episodes || []).slice().sort((a, b) => a.episode_number - b.episode_number);
-    box.innerHTML = `<h2>Сезоны и серии</h2><div class="chips" id="sch">${seasons.map(x => `<button class="chip${x.season_number === sel ? " on" : ""}" data-s="${x.season_number}">${esc(sName(x))}</button>`).join("")}</div>
+    box.innerHTML = `<h2>Сезоны и серии</h2>${contBtn()}<div class="chips" id="sch">${seasons.map(x => `<button class="chip${x.season_number === sel ? " on" : ""}" data-s="${x.season_number}">${esc(sName(x))}</button>`).join("")}</div>
       ${sn.overview ? `<p style="color:var(--mute);margin:10px 0">${esc(sn.overview)}</p>` : ""}
-      <div class="eps">${eps.length ? eps.map(e => { const has = (e.episode_sources || []).length > 0; return `<div class="ep"><img loading="lazy" src="${e.still_path ? im("w300", e.still_path) : NOIMG}" alt="">
-        <div><b>${e.episode_number}. ${esc(e.name || "Серия " + e.episode_number)}</b><small>${e.runtime ? e.runtime + " " + t("min") : ""}${e.air_date ? (e.runtime ? " · " : "") + esc(e.air_date) : ""}</small>${e.overview ? `<p>${esc(e.overview)}</p>` : ""}</div>
-        ${has || (Number(m.tmdb_id) > 0 && Number(e.episode_number) > 0) ? `<a class="btn fill sm" href="#/episode/${e.id}">Смотреть серию</a>` : `<span class="nosrc" style="color:var(--mute);font-size:13px">Скоро</span>`}</div>`; }).join("") : `<p style="color:var(--mute)">Серий в этом сезоне нет.</p>`}</div>`;
+      <div class="eps">${eps.length ? eps.map(e => { const has = (e.episode_sources || []).length > 0; const p = prog.get(e.id); return `<div class="ep${p && p.completed ? " seen" : ""}"><img loading="lazy" src="${e.still_path ? im("w300", e.still_path) : NOIMG}" alt="">
+        <div><b>${e.episode_number}. ${esc(e.name || "Серия " + e.episode_number)}${p ? (p.completed ? `<span class="ep-seen">✓ Просмотрено</span>` : p.position_seconds > 30 ? `<span class="ep-part">Продолжить</span>` : "") : ""}</b><small>${e.runtime ? e.runtime + " " + t("min") : ""}${e.air_date ? (e.runtime ? " · " : "") + esc(e.air_date) : ""}</small>${e.overview ? `<p>${esc(e.overview)}</p>` : ""}</div>
+        ${has || (Number(m.tmdb_id) > 0 && Number(e.episode_number) > 0) ? `<a class="btn fill sm" href="#/episode/${e.id}">${p && !p.completed && p.position_seconds > 30 ? "Продолжить" : "Смотреть серию"}</a>` : `<span class="nosrc" style="color:var(--mute);font-size:13px">Скоро</span>`}</div>`; }).join("") : `<p style="color:var(--mute)">Серий в этом сезоне нет.</p>`}</div>`;
     $$("#sch .chip", box).forEach(c => c.onclick = () => { sel = +c.dataset.s; ls.set("season:" + m.id, sel); draw(); });
   };
   draw();
@@ -1270,22 +1548,24 @@ async function episodePage(app, id) {
     .sort((a, b) => a.seasons.season_number - b.seasons.season_number || a.episode_number - b.episode_number);
   const i = all.findIndex(x => x.id === e.id), prev = all[i - 1], next = all[i + 1];
   const srcs = (e.episode_sources || []).slice().sort((a, b) => a.ord - b.ord).map(x => ({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
-  let items = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r), nexstreamError = "";
-  if (!items.length && Number(m.tmdb_id) > 0 && Number(e.episode_number) > 0) {
-    try {
-      const url = await nexstreamEmbed({ type: "tv", tmdb_id: Number(m.tmdb_id), season: Number(e.seasons.season_number), episode: Number(e.episode_number) });
-      const source = { title: "NexStream", note: "", url, quality: "Embed" };
-      items = [{ ...source, r: resolveSrc(url) }].filter(x => x.r);
-    } catch (err) { nexstreamError = err.message || "Не удалось получить видео NexStream."; }
-  }
+  const manual = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r), nexstreamError = "";
+  const useVr = Number(m.tmdb_id) > 0 && Number(e.episode_number) > 0, items = manual;
   const code = `С${e.seasons.season_number} · Е${e.episode_number}`;
   const nav = x => `#/episode/${x.id}`;
   app.innerHTML = `<div class="page" style="padding-top:96px"><a href="#/tv/${m.id}" style="color:var(--mute)">← ${esc(T(m))}</a>
     <h1 style="margin:8px 0 4px">${esc(e.name || "Серия " + e.episode_number)}</h1><p style="color:var(--mute)">${code}${e.runtime ? " · " + e.runtime + " " + t("min") : ""}</p>
-    ${items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">${nexstreamError ? `NexStream: ${esc(nexstreamError)}` : "Для этой серии пока нет видеоисточников."}</div>`}
+    ${useVr ? `<section class="sec" id="vrBox"></section>` : items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">${nexstreamError ? `NexStream: ${esc(nexstreamError)}` : "Для этой серии пока нет видеоисточников."}</div>`}
     ${e.overview ? `<p class="ov" style="margin:16px 0">${esc(e.overview)}</p>` : ""}
+    ${next ? `<a class="cp-nextcard" href="${nav(next)}"><div><small>Следующая серия</small><b>С${next.seasons.season_number} · Е${next.episode_number}${next.name ? " — " + esc(next.name) : ""}</b><span class="btn fill sm">Смотреть</span></div></a>` : ""}
     <div class="btns" style="margin:16px 0">${prev ? `<a class="btn line" href="${nav(prev)}">← Предыдущая</a>` : ""}${next ? `<a class="btn fill" href="${nav(next)}">Следующая серия →</a>` : ""}</div></div>`;
-  if (items.length) {
+  if (useVr) {
+    const resume = await getResume(m.id, e.id), bd = e.still_path || m.backdrop_path;
+    CinemaPPlayer($("#vrBox", app), { title_id: m.id, episode_id: e.id, tmdb_id: m.tmdb_id, media_type: "tv", season: Number(e.seasons.season_number), episode: Number(e.episode_number), resume,
+      name: T(m) + " · " + code, backdrop: bd ? im("w1280", bd) : "",
+      next: next ? { season: next.seasons.season_number, episode: next.episode_number, label: `С${next.seasons.season_number} · Е${next.episode_number}${next.name ? " — " + next.name : ""}`, go: () => { location.hash = nav(next); } } : null,
+      goEpisode: (s, n) => { const x = all.find(y => y.seasons.season_number === s && y.episode_number === n); if (x) location.hash = nav(x); },
+      fallback: box => legacyFallback(box, m, { type: "tv", tmdb_id: Number(m.tmdb_id), season: Number(e.seasons.season_number), episode: Number(e.episode_number) }, manual, bd ? im("w780", bd) : "", { title_id: m.id, episode_id: e.id, resume }) });
+  } else if (items.length) {
     const resume = await getResume(m.id, e.id);
     initPlayer(app, items, { title_id: m.id, episode_id: e.id, resume, onNext: scr => { if (!next) return; scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Серия завершена</b><a class="btn fill" href="${nav(next)}">Следующая серия</a></div>`); } });
   }
