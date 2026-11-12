@@ -52,10 +52,8 @@ jobs:
             > /tmp/torrserver-add.json
           cat /tmp/torrserver-add.json
 
-      - name: Wait for torrent metadata and inspect files
-        shell: bash
+      - name: Wait for torrent metadata
         run: |
-          set +e
           for attempt in $(seq 1 60); do
             curl -fsS --max-time 30 \
               -X POST \
@@ -65,46 +63,47 @@ jobs:
               > /tmp/torrserver-status.json
             status=$(python3 -c "import json; print(json.load(open('/tmp/torrserver-status.json')).get('stat_string',''))")
             echo "Attempt $attempt: $status"
-            if [ "$status" != "Torrent getting info" ]; then
-              break
+            if [ "$status" = "Torrent working" ]; then
+              exit 0
             fi
             sleep 5
           done
-          sleep 15
-          curl -fsS --max-time 30 \
-            -X POST \
-            -H 'Content-Type: application/json' \
-            -d '{"action":"get","hash":"E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3"}' \
-            http://127.0.0.1:8090/torrents \
-            > /tmp/torrserver-status.json
+          echo "TorrServer did not become ready"
+          docker logs torrserver-probe --tail 100
+          exit 2
+
+      - name: Inspect audio tracks with FFmpeg
+        shell: bash
+        run: |
+          set +e
+          stream_url='http://127.0.0.1:8090/stream?link=magnet%3A%3Fxt%3Durn%3Abtih%3AE25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3%26tr%3Dhttp%253A%252F%252Fbt4.t-ru.org%252Fann%253Fmagnet&play=true&index=1'
+          ffmpeg -hide_banner -loglevel error -i "$stream_url" -t 10 -f null - > /tmp/ffmpeg-output.txt 2>&1
           result=$?
           python3 - <<'PY'
           import json, re
           from pathlib import Path
-          try:
-              data = json.loads(Path('/tmp/torrserver-status.json').read_text())
-          except Exception:
-              data = {}
-          files = data.get('files') or []
+          output = Path('/tmp/ffmpeg-output.txt').read_text(errors='ignore')
           audio = []
           russian = []
-          for index, file in enumerate(files):
-              path = str(file.get('path') or file.get('name') or '')
-              if re.search(r'\.(mkv|mp4|avi|m4v)$', path, re.I):
-                  audio.append({'index': index, 'path': path[:200]})
-                  if re.search(r'(?i)(russian|\br u\b|\brus\b|\bru-ru\b|дубляж|озвучк|перевод)', path):
-                      russian.append({'index': index, 'path': path[:200]})
+          for match in re.finditer(r'Stream #\d+:\d+.*?Audio: ([^,]+),.*?(?:, (\w+)(?:/\w+)?(?: \(([^)]+)\))?)?', output):
+              codec = match.group(1)
+              language = (match.group(2) or '').lower()
+              title = match.group(3) or ''
+              is_russian = language in ('ru', 'rus', 'ru-ru') or 'russian' in (language + ' ' + title).lower() or 'дубляж' in title.lower()
+              item = {'codec': codec, 'language': language, 'title': title}
+              audio.append(item)
+              if is_russian:
+                  russian.append(item)
           report = {
-            'candidate': 'TorrServer',
+            'candidate': 'TorrServer + FFmpeg',
             'testedFrom': 'GitHub Actions, not Render',
             'movie': 'Iron Man 3',
-            'torrentStatus': data.get('stat_string'),
-            'filesFound': len(files),
-            'videoFilesFound': len(audio),
-            'russianFiles': len(russian),
-            'russianResults': russian[:20],
-            'firstFiles': files[:10],
-            'fullResponse': data,
+            'ffmpegExitCode': Path('/tmp/ffmpeg-output.txt').exists(),
+            'audioTracksFound': len(audio),
+            'russianAudioTracks': len(russian),
+            'russianTracks': russian,
+            'allAudioTracks': audio,
+            'ffmpegOutput': output[:5000],
             'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
           }
           print(json.dumps(report, indent=2, ensure_ascii=False))
