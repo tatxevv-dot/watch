@@ -52,33 +52,51 @@ jobs:
             > /tmp/torrserver-add.json
           cat /tmp/torrserver-add.json
 
-      - name: Inspect torrent status and audio metadata
+      - name: Wait for torrent metadata and inspect files
         shell: bash
         run: |
           set +e
-          curl -fsS --max-time 60 \
-            -X POST \
-            -H 'Content-Type: application/json' \
-            -d '{"action":"get","hash":"E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3"}' \
-            http://127.0.0.1:8090/torrents \
-            > /tmp/torrserver-stream.json
+          for attempt in $(seq 1 60); do
+            curl -fsS --max-time 30 \
+              -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"action":"get","hash":"E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3"}' \
+              http://127.0.0.1:8090/torrents \
+              > /tmp/torrserver-status.json
+            status=$(python3 -c "import json; print(json.load(open('/tmp/torrserver-status.json')).get('stat_string',''))")
+            echo "Attempt $attempt: $status"
+            if [ "$status" != "Torrent getting info" ]; then
+              break
+            fi
+            sleep 5
+          done
           result=$?
           python3 - <<'PY'
           import json, re
           from pathlib import Path
           try:
-              data = json.loads(Path('/tmp/torrserver-stream.json').read_text())
+              data = json.loads(Path('/tmp/torrserver-status.json').read_text())
           except Exception:
               data = {}
-          text = json.dumps(data, ensure_ascii=False, default=str)
-          russian = bool(re.search(r'(?i)(russian|\br u\b|\brus\b|\bru-ru\b|дубляж|озвучк|перевод)', text))
+          files = data.get('files') or []
+          audio = []
+          russian = []
+          for index, file in enumerate(files):
+              path = str(file.get('path') or file.get('name') or '')
+              if re.search(r'\.(mkv|mp4|avi|m4v)$', path, re.I):
+                  audio.append({'index': index, 'path': path[:200]})
+                  if re.search(r'(?i)(russian|\br u\b|\brus\b|\bru-ru\b|дубляж|озвучк|перевод)', path):
+                      russian.append({'index': index, 'path': path[:200]})
           report = {
             'candidate': 'TorrServer',
             'testedFrom': 'GitHub Actions, not Render',
             'movie': 'Iron Man 3',
-            'torrentStatusKeys': list(data.keys()) if isinstance(data, dict) else [],
-            'russianMarkersFound': russian,
-            'responsePreview': text[:5000],
+            'torrentStatus': data.get('stat_string'),
+            'filesFound': len(files),
+            'videoFilesFound': len(audio),
+            'russianFiles': len(russian),
+            'russianResults': russian[:20],
+            'firstFiles': files[:10],
             'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
           }
           print(json.dumps(report, indent=2, ensure_ascii=False))
