@@ -84,8 +84,8 @@ jobs:
           stream_url='http://127.0.0.1:8090/stream?link=magnet%3A%3Fxt%3Durn%3Abtih%3AE25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3%26tr%3Dhttp%253A%252F%252Fbt4.t-ru.org%252Fann%253Fmagnet&play=true&index=1'
           ffmpeg -hide_banner -loglevel error -i "$stream_url" -t 10 -f null - > /tmp/ffmpeg-output.txt 2>&1
           result=$?
-          python3 - <<'PY'
-          import json, re
+          FFMPEG_EXIT_CODE="$result" python3 - <<'PY'
+          import json, os, re
           from pathlib import Path
           output = Path('/tmp/ffmpeg-output.txt').read_text(errors='ignore')
           audio = []
@@ -103,7 +103,7 @@ jobs:
             'candidate': 'TorrServer + FFmpeg',
             'testedFrom': 'GitHub Actions, not Render',
             'movie': 'Iron Man 3',
-            'ffmpegExitCode': result,
+            'ffmpegExitCode': int(os.environ.get('FFMPEG_EXIT_CODE', '-1')),
             'audioTracksFound': len(audio),
             'russianAudioTracks': len(russian),
             'russianTracks': russian,
