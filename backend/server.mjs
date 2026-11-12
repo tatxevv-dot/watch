@@ -261,16 +261,17 @@ app.get('/remux', async c => {
       '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
       '-f', 'mp4', 'pipe:1'];
     const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
+    console.log('remux start', 'index=' + index, 'audio=' + (audio ?? 'default'));
+    let sent = 0;
     let log = '';
     ff.stderr.on('data', d => { if (log.length < 2000) log += d; });
     const kill = () => { try { ff.kill('SIGKILL'); } catch {} };
     const limit = setTimeout(kill, 6 * 3600 * 1000);
-    ff.on('close', code => { clearTimeout(limit); release(); if (code && code !== 255 && log) console.error('ffmpeg:', code, log.trim()); });
+    ff.on('close', (code, sig) => { clearTimeout(limit); release(); console.log('remux end', 'code=' + code, 'signal=' + sig, 'bytes=' + sent); if (code && code !== 255 && log) console.error('ffmpeg:', code, log.trim()); });
     ff.on('error', e => { console.error('ffmpeg spawn:', e?.message || e); release(); });
-    c.req.raw.signal?.addEventListener('abort', kill);
     const body = new ReadableStream({
       start(ctrl) {
-        ff.stdout.on('data', chunk => { try { ctrl.enqueue(new Uint8Array(chunk)); } catch { kill(); } });
+        ff.stdout.on('data', chunk => { sent += chunk.length; try { ctrl.enqueue(new Uint8Array(chunk)); } catch { kill(); } });
         ff.stdout.on('end', () => { try { ctrl.close(); } catch {} });
         ff.stdout.on('error', () => { try { ctrl.close(); } catch {} });
       },
