@@ -460,6 +460,15 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 <script src="https://cdn.jsdelivr.net/npm/hls.js@1.5.13/dist/hls.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.polyfilled.min.js"></script>
 <script>
+/* Блокировка рекламных переходов, которые наш сайт реально может перехватить (свои ссылки и window.open).
+   Внутри чужого iframe плеера (NexStream) сайт перехватить ничего не может. */
+const AD_BLOCK = ["profitablecpmratenetwork.com", "hola.org", "aliexpress.ru"];
+const isAdUrl = u => { try { const h = new URL(u, location.href).hostname.toLowerCase(); return AD_BLOCK.some(d => h === d || h.endsWith("." + d)); } catch { return false; } };
+const _open = window.open;
+window.open = function (u, ...r) { return isAdUrl(u) ? null : _open.call(window, u, ...r); };
+document.addEventListener("click", e => { const a = e.target.closest && e.target.closest("a[href]"); if (a && isAdUrl(a.href)) { e.preventDefault(); e.stopPropagation(); } }, true);
+</script>
+<script>
 /* Supabase проекта kadr (публичный publishable-ключ; доступ ограничен RLS) */
 const SB_URL = "https://tkojemckjyurkbmrgolv.supabase.co";
 const SB_KEY = "sb_publishable_9g-hnT5s7115OwgETFAavA_QvptchpZ";
