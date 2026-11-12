@@ -21,6 +21,11 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
       - name: Start TorrServer
         run: |
           docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:8090:8090 \
@@ -98,7 +103,7 @@ jobs:
             'candidate': 'TorrServer + FFmpeg',
             'testedFrom': 'GitHub Actions, not Render',
             'movie': 'Iron Man 3',
-            'ffmpegExitCode': Path('/tmp/ffmpeg-output.txt').exists(),
+            'ffmpegExitCode': result,
             'audioTracksFound': len(audio),
             'russianAudioTracks': len(russian),
             'russianTracks': russian,
