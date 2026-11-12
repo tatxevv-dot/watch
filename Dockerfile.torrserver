@@ -1,8 +1,0 @@
-FROM debian:bookworm-slim
-RUN apt-get update && apt-get install -y --no-install-recommends curl ca-certificates \
- && rm -rf /var/lib/apt/lists/* \
- && curl -fsSL -o /usr/local/bin/torrserver https://github.com/YouROK/TorrServer/releases/latest/download/TorrServer-linux-amd64 \
- && chmod +x /usr/local/bin/torrserver \
- && mkdir -p /tmp/torrserver && chmod 777 /tmp/torrserver
-EXPOSE 10000
-CMD ["torrserver", "--port", "10000", "--path", "/tmp/torrserver", "--dontkill"]
