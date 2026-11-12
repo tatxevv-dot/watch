@@ -1,0 +1,44 @@
+name: Nxsha checks
+on:
+  push:
+    branches: [feat/nxsha-source]
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  check:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Client contract tests
+        run: node --test tests/nxsha-client.test.mjs
+      - name: Build backend
+        run: docker build -t watch-nxsha-test -f backend/Dockerfile backend
+      - name: Start isolated test backend
+        run: |
+          docker run -d --name nxsha-test -p 127.0.0.1:10000:10000 \
+            -e ADMIN_TOKEN="$(openssl rand -hex 32)" \
+            -e SIGNING_SECRET="$(openssl rand -hex 32)" \
+            -e ALLOWED_ORIGIN=https://tatxevv-dot.github.io \
+            watch-nxsha-test
+      - name: Health and access controls
+        shell: bash
+        run: |
+          set -euo pipefail
+          base=http://127.0.0.1:10000
+          curl --fail --max-time 3 --retry 30 --retry-delay 2 --retry-connrefused "$base/health" | jq -e '.ok == true and .provider == "nxsha"'
+          test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"123"}' "$base/api/extract")" = 401
+          test "$(curl -s -o /dev/null -w '%{http_code}' "$base/proxy?url=https%3A%2F%2Fexample.com")" = 403
+          test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://untrusted.example' "$base/health")" = 403
+          curl -fsS -D /tmp/nxsha-headers -o /dev/null -H 'Origin: https://tatxevv-dot.github.io' "$base/health"
+          grep -qi '^access-control-allow-origin: https://tatxevv-dot.github.io' /tmp/nxsha-headers
+      - name: Test container logs on failure
+        if: failure()
+        run: docker logs nxsha-test || true
+      - name: Cleanup
+        if: always()
+        run: docker rm -f nxsha-test || true
