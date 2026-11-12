@@ -1,0 +1,38 @@
+name: Final audio decode check
+on:
+  push:
+    branches: [feat/nxsha-source]
+    paths: [tests/final-audio.mjs, .github/workflows/final-audio.yml]
+permissions:
+  contents: read
+jobs:
+  final-audio:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build isolated decoder
+        run: |
+          git clone https://github.com/x8rr/movies.git "$RUNNER_TEMP/movies-probe"
+          git -C "$RUNNER_TEMP/movies-probe" checkout bf57ffd029996b86cf86f7f16d919b4fb79e9bad
+          printf '\nRUN apk add --no-cache ffmpeg\n' >> "$RUNNER_TEMP/movies-probe/Dockerfile"
+          docker build -t watch-final-audio "$RUNNER_TEMP/movies-probe"
+      - name: Decode audio and report languages
+        shell: bash
+        run: |
+          set +e
+          timeout 600s docker run --rm --memory=512m --cpus=1 \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/final-audio.mjs",target=/app/probe.mjs,readonly \
+            --entrypoint bun watch-final-audio /app/probe.mjs > /tmp/final-audio.json
+          result=$?
+          cat /tmp/final-audio.json
+          {
+            echo '## Final audio decode check'
+            echo '```json'
+            cat /tmp/final-audio.json
+            echo '```'
+            echo "Exit code: $result"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
