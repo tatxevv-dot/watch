@@ -30,7 +30,26 @@ jobs:
         run: |
           set -euo pipefail
           base=http://127.0.0.1:10000
-          curl --fail --max-time 3 --retry 30 --retry-delay 2 --retry-connrefused "$base/health" | jq -e '.ok == true and .provider == "nxsha"'
+          ready=0
+          for attempt in $(seq 1 30); do
+            if [ "$(docker inspect -f '{{.State.Running}}' nxsha-test)" != true ]; then
+              echo 'Test backend stopped before becoming ready'
+              docker logs nxsha-test
+              exit 1
+            fi
+            if curl --fail --silent --show-error --max-time 3 "$base/health" -o /tmp/nxsha-health.json; then
+              ready=1
+              break
+            fi
+            echo "Backend not ready, attempt $attempt/30"
+            sleep 2
+          done
+          if [ "$ready" != 1 ]; then
+            echo 'Backend readiness deadline exceeded'
+            docker logs nxsha-test
+            exit 1
+          fi
+          jq -e '.ok == true and .provider == "nxsha"' /tmp/nxsha-health.json
           test "$(curl -s -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{"url":"123"}' "$base/api/extract")" = 401
           test "$(curl -s -o /dev/null -w '%{http_code}' "$base/proxy?url=https%3A%2F%2Fexample.com")" = 403
           test "$(curl -s -o /dev/null -w '%{http_code}' -H 'Origin: https://untrusted.example' "$base/health")" = 403
