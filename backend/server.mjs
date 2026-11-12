@@ -8,6 +8,40 @@ import { encodeProxyUrl } from './src/proxy.js';
 const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN, TORRSERVER_URL } = process.env;
 if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 32 || !SIGNING_SECRET || SIGNING_SECRET.length < 32 || !ALLOWED_ORIGIN) throw new Error('Configure ADMIN_TOKEN, SIGNING_SECRET (32+ characters) and ALLOWED_ORIGIN');
 if (!TORRSERVER_URL) throw new Error('Configure TORRSERVER_URL');
+const YTS_HOSTS = ['https://yts.mx', 'https://yts.lt', 'https://yts.am'];
+const TRACKERS = ['udp://tracker.opentrackr.org:1337/announce', 'udp://open.demonii.com:1337/announce', 'udp://tracker.openbittorrent.com:80', 'udp://tracker.torrent.eu.org:451/announce', 'udp://open.stealth.si:80/announce', 'udp://exodus.desync.com:6969/announce', 'udp://tracker.moeru.ai:6969/announce'];
+async function searchYts(title, year) {
+  let movies = null;
+  for (const host of YTS_HOSTS) {
+    try {
+      const r = await fetch(`${host}/api/v2/list_movies.json?query_term=${encodeURIComponent(title)}&limit=20`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      movies = d?.data?.movies || [];
+      break;
+    } catch {}
+  }
+  if (movies === null) throw new Error('YTS unavailable');
+  const norm = t => String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const q = norm(title);
+  let list = movies.filter(m => !year || String(m.year) === year);
+  const exact = list.filter(m => norm(m.title) === q || norm(m.title_english || '') === q);
+  if (exact.length) list = exact;
+  else if (title) list = list.filter(m => norm(m.title).includes(q) || q.includes(norm(m.title)));
+  const items = [];
+  for (const m of list) for (const t of m.torrents || []) {
+    if (!t.hash) continue;
+    const hevc = /x265|hevc/i.test(t.video_codec || '') || t.quality === '2160p';
+    items.push({ m, t, hevc });
+  }
+  if (!items.length) return null;
+  const pool = items.some(i => !i.hevc) ? items.filter(i => !i.hevc) : items;
+  pool.sort((a, b) => (b.t.seeds || 0) - (a.t.seeds || 0));
+  const { m, t } = pool[0];
+  const name = `${m.title_long || m.title} [${t.quality}]`;
+  const magnet = `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(name)}` + TRACKERS.map(x => '&tr=' + encodeURIComponent(x)).join('');
+  return { magnet, name, seeders: t.seeds || 0, size: t.size_bytes || 0 };
+}
 const app = new Hono();
 let extracting = 0;
 const equal = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
@@ -56,6 +90,22 @@ app.post('/api/extract', async c => {
     return c.json({ servers });
   } catch { return c.json({ error: 'Nxsha extraction failed; inspect source availability' }, 502); }
   finally { extracting--; }
+});
+app.use('/api/torrent/search', bodyLimit({ maxSize: 2048 }));
+app.post('/api/torrent/search', async c => {
+  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
+  let title, year;
+  try {
+    const body = await c.req.json();
+    title = String(body.title || '').trim();
+    year = String(body.year || '').trim();
+    if (!title) throw new Error();
+  } catch { return c.json({ error: 'Expected a movie title' }, 400); }
+  try {
+    const best = await searchYts(title, year);
+    if (!best) return c.json({ error: 'Source not found' }, 404);
+    return c.json(best);
+  } catch { return c.json({ error: 'Torrent search failed' }, 502); }
 });
 app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
 app.post('/api/torrent/stream', async c => {
