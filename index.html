@@ -949,7 +949,12 @@ function initPlayer(root, items, ctx) {
     } else {
       el = document.createElement("iframe");
       el.src = s.r.kind === "plyr" ? (s.r.prov === "youtube" ? `https://www.youtube-nocookie.com/embed/${s.r.id}?rel=0&autoplay=1` : `https://player.vimeo.com/video/${s.r.id}?autoplay=1`) : s.r.src;
-      el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = "strict-origin-when-cross-origin"; el.title = s.title; scr.appendChild(el);
+      el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = "strict-origin-when-cross-origin"; el.title = s.title;
+      // Блокируем всплывающие рекламные окна только для NexStream
+      if (s.r.host === "api.codespecters.com") {
+        el.setAttribute("sandbox", "allow-scripts allow-same-origin allow-forms allow-presentation");
+      }
+      scr.appendChild(el);
     }
     $$(".pp-src", root).forEach(b => b.setAttribute("aria-current", b.dataset.i == i));
     $("#ppN", root).innerHTML = `<b>${esc(s.title)}</b><span>${s.quality ? esc(s.quality) : ""}</span>`;
