@@ -1488,13 +1488,21 @@ document.addEventListener("click", async e => {
   if (b.disabled) return;
   const card = b.closest(".card"), old = card && card.querySelector(".wmsg"); if (old) old.remove();
   const title = b.dataset.title, year = Number(b.dataset.year) || b.dataset.year || null, label = b.textContent;
-  const fail = () => { const m = document.createElement("span"); m.className = "wmsg"; m.textContent = "Источник не найден"; b.after(m); setTimeout(() => m.remove(), 4000); };
+  const fail = (txt) => { const m = document.createElement("span"); m.className = "wmsg"; m.textContent = txt || "Источник не найден"; b.after(m); setTimeout(() => m.remove(), 4000); };
+  const getTok = () => { try { return localStorage.getItem("ADMIN_TOKEN") || ""; } catch (_) { return ""; } };
+  let token = getTok();
+  if (!token) {
+    token = (window.prompt("Введите ADMIN_TOKEN (сохранится на этом устройстве)") || "").trim();
+    if (!token) return fail("Нужен ADMIN_TOKEN");
+    try { localStorage.setItem("ADMIN_TOKEN", token); } catch (_) {}
+  }
   b.disabled = true; b.textContent = "Ищем…";
   try {
-    const r = await fetch("https://watch-nxsha.onrender.com/api/torrent/search", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ title, year }) });
+    const r = await fetch("https://watch-nxsha.onrender.com/api/torrent/search", { method: "POST", headers: { "Content-Type": "application/json", Authorization: "Bearer " + token }, body: JSON.stringify({ title, year }) });
     const d = await r.json().catch(() => ({}));
-    const magnet = r.ok && d && (d.magnet || (d.result && d.result.magnet) || (Array.isArray(d.results) && d.results[0] && d.results[0].magnet));
-    if (magnet) location.href = "torrent.html?magnet=" + encodeURIComponent(magnet); else fail();
+    if (r.status === 401) { try { localStorage.removeItem("ADMIN_TOKEN"); } catch (_) {} fail("Неверный ADMIN_TOKEN"); }
+    else if (r.ok && d && d.magnet) location.href = "torrent.html?magnet=" + encodeURIComponent(d.magnet);
+    else fail();
   } catch (_) { fail(); }
   b.disabled = false; b.textContent = label;
 }, true);
