@@ -411,21 +411,6 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 #umenu a,#umenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 12px;border-radius:9px;font-size:14px;font-weight:500;color:var(--ink)}
 #umenu a:hover,#umenu button:hover{background:var(--bg2)}
 #umenu button{color:#e5645b}
-/* ---- VidBolt: панель Watch под видео ---- */
-.pp-screen:fullscreen{border-radius:0}
-.vb-bar{display:flex;align-items:center;gap:4px;margin-top:10px;padding:6px 10px;background:var(--bg2);border-radius:14px;color:var(--ink)}
-.vb-bar button{flex:none;width:40px;height:40px;border:0;border-radius:50%;background:none;color:inherit;display:grid;place-items:center;cursor:pointer;position:relative;transition:background .2s,transform .2s}
-.vb-bar button:hover{background:var(--line)}.vb-bar button:active{transform:scale(.92)}
-.vb-bar svg{width:22px;height:22px;fill:currentColor}
-.vb-bar .sk::after{content:"10";position:absolute;font:700 7.5px/1 system-ui;top:50%;left:50%;transform:translate(-50%,-35%)}
-.vb-bar .t{font:500 12.5px/1 system-ui;font-variant-numeric:tabular-nums;color:var(--mute);min-width:38px;text-align:center}
-.vb-bar input[type=range]{-webkit-appearance:none;appearance:none;flex:1;min-width:0;height:18px;background:none;margin:0;touch-action:none;--p:0%}
-.vb-bar input[type=range]::-webkit-slider-runnable-track{height:4px;border-radius:2px;background:linear-gradient(to right,var(--ink) var(--p),var(--line) var(--p))}
-.vb-bar input[type=range]::-moz-range-track{height:4px;border-radius:2px;background:var(--line)}.vb-bar input[type=range]::-moz-range-progress{height:4px;border-radius:2px;background:var(--ink)}
-.vb-bar input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;margin-top:-5px;border-radius:50%;background:var(--ink)}
-.vb-bar input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:var(--ink)}
-.vb-bar .vol{flex:none;width:70px}
-@media(max-width:640px){.vb-bar .vol,.vb-bar .vbm{display:none}.vb-bar{padding:4px 6px;gap:2px}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap&subset=cyrillic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 </head>
@@ -856,7 +841,7 @@ async function getResume(title_id, episode_id) {
 }
 function saveProgress(ctx, pos, dur, keepalive) {
   if (!me || !ctx || !ctx.title_id || !(dur > 0)) return;
-  const row = { user_id: me.id, title_id: ctx.title_id, episode_id: ctx.episode_id || null, position_seconds: Math.floor(pos), duration_seconds: Math.floor(dur), completed: ctx.vr ? !!ctx._ended : pos / dur >= 0.92, updated_at: new Date().toISOString() };
+  const row = { user_id: me.id, title_id: ctx.title_id, episode_id: ctx.episode_id || null, position_seconds: Math.floor(pos), duration_seconds: Math.floor(dur), completed: pos / dur >= 0.92, updated_at: new Date().toISOString() };
   if (keepalive && accessToken) {
     try { fetch(SB_URL + "/rest/v1/watch_progress?on_conflict=user_id,title_id,episode_id", { method: "POST", keepalive: true, headers: { apikey: SB_KEY, Authorization: "Bearer " + accessToken, "Content-Type": "application/json", Prefer: "resolution=merge-duplicates,return=minimal" }, body: JSON.stringify(row) }); } catch {}
   } else sb.from("watch_progress").upsert(row, { onConflict: "user_id,title_id,episode_id" }).then(() => {}, () => {});
@@ -869,8 +854,7 @@ function touchHistory(ctx) {
 function initPlayer(root, items, ctx) {
   const scr = $("#ppS", root); if (!scr) return;
   ctx = ctx || {};
-  let pl = null, hl = null, cur = 0, gen = 0, started = false, unbind = null;
-  window.addEventListener("hashchange", () => { if (unbind) { unbind(); unbind = null; } }, { once: true });
+  let pl = null, hl = null, cur = 0, gen = 0, started = false, tmr = null;
   const st = { pos: 0, dur: 0 }, failed = new Set(), noResume = new Set();
   /* iPhone: кнопка полноэкранного режима открывает системный плеер напрямую */
   scr.addEventListener("click", e => {
@@ -908,20 +892,19 @@ function initPlayer(root, items, ctx) {
   };
   const nextFrom = i => { for (let k = 1; k <= items.length; k++) { const j = (i + k) % items.length; if (!failed.has(j) && items[j].r.kind === "video") return j; } return -1; };
   const errOv = (msg, i) => {
-    const n = items.length > 1 ? (i + 1) % items.length : -1, pos = st.pos > 3 ? st.pos : undefined;
+    const n = items.length > 1 ? (i + 1) % items.length : -1;
     scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>${msg}</b><span>Проверьте соединение или выберите другой источник.</span><div><button class="btn fill" data-r>Повторить</button>${n >= 0 ? ` <button class="btn line" data-o>Другой источник</button>` : ""}</div></div>`);
-    const o = scr.lastElementChild; o.querySelector("[data-r]").onclick = () => play(i, pos); const b = o.querySelector("[data-o]"); if (b) b.onclick = () => play(n, pos);
+    const o = scr.lastElementChild; o.querySelector("[data-r]").onclick = () => play(i); const b = o.querySelector("[data-o]"); if (b) b.onclick = () => play(n);
   };
   const play = (i, startAt) => {
-    const s = items[i], my = ++gen; cur = i; ctx.vr = false; ctx._ended = false;
-    if (unbind) { unbind(); unbind = null; }
+    const s = items[i], my = ++gen; cur = i; clearTimeout(tmr);
     if (pl) { try { pl.destroy(); } catch {} pl = null; }
     if (hl) { try { hl.destroy(); } catch {} hl = null; }
     scr.innerHTML = ""; let el;
     if (s.lazy) {   // NexStream: ссылка запрашивается только при выборе источника
       scr.innerHTML = `<div class="pp-over"><b>Загрузка…</b></div>`;
       $$(".pp-src", root).forEach(b => b.setAttribute("aria-current", b.dataset.i == i)); $("#ppN", root).innerHTML = `<b>${esc(s.title)}</b><span>${s.quality ? esc(s.quality) : ""}</span>`;
-      s.lazy().then(url => { const r = resolveSrc(url); if (!r) throw new Error("bad"); s.r = r; s.url = url; delete s.lazy; if (my === gen) play(i, startAt); }).catch(() => { if (my !== gen) return; scr.innerHTML = ""; errOv("Источник недоступен", i); });
+      s.lazy().then(url => { const r = resolveSrc(url); if (!r) throw new Error("bad"); s.r = r; s.url = url; delete s.lazy; if (my === gen) play(i); }).catch(() => { if (my !== gen) return; scr.innerHTML = ""; errOv("Источник недоступен", i); });
       return;
     }
     if (s.r.kind === "video") {
@@ -985,49 +968,13 @@ function initPlayer(root, items, ctx) {
       pl = new Plyr(el, OPT); pl.once("ready", () => { try { pl.play(); } catch {} });
     } else {
       el = document.createElement("iframe");
-      el.src = s.r.kind === "plyr" ? (s.r.prov === "youtube" ? `https://www.youtube-nocookie.com/embed/${s.r.id}?rel=0&autoplay=1` : `https://player.vimeo.com/video/${s.r.id}?autoplay=1`) : (s.build ? s.build(startAt) : s.r.src);
-      el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = "strict-origin-when-cross-origin"; el.title = s.title; scr.appendChild(el);
-      if (s.provider === "vidbolt") {
+      el.src = s.r.kind === "plyr" ? (s.r.prov === "youtube" ? `https://www.youtube-nocookie.com/embed/${s.r.id}?rel=0&autoplay=1` : `https://player.vimeo.com/video/${s.r.id}?autoplay=1`) : s.r.src;
+      el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = s.noRef ? "no-referrer" : "strict-origin-when-cross-origin"; el.title = s.title; scr.appendChild(el);
+      if (s.provider === "embedwave") {   // событий плеера нет: индикатор загрузки и ручной повтор, без циклов
+        touchHistory(ctx);
         const ov = document.createElement("div"); ov.className = "pp-over"; ov.innerHTML = "<b>Загрузка плеера…</b>"; scr.appendChild(ov);
-        let done = false, lastSave = 0, began = false, paused = true, dur = 0, t0 = 0, at = 0, seeking = false, vol = 1;
-        const tm = setTimeout(() => { if (done || my !== gen) return; ov.remove(); errOv("Плеер долго не отвечает", i); }, 20000);
-        el.addEventListener("load", () => { done = true; clearTimeout(tm); ov.remove(); });
-        const post = (type, extra) => { try { el.contentWindow.postMessage(Object.assign({ type }, extra || {}), VB_ORIGIN); } catch {} };   // точный targetOrigin
-        const nowPos = () => paused ? t0 : Math.min(dur || 1e9, t0 + (Date.now() - at) / 1000);
-        /* панель управления Watch под видео; сам плеер (аудио, сервер, субтитры, качество) остаётся внутри iframe */
-        const canFs = !!(scr.requestFullscreen || scr.webkitRequestFullscreen);
-        const bar = document.createElement("div"); bar.className = "vb-bar";
-        bar.innerHTML = `<button data-a="pp" aria-label="Пауза/воспроизведение">${vbi("play")}</button><button class="sk" data-a="b" aria-label="Назад 10 секунд">${vbi("b")}</button><button class="sk" data-a="f" aria-label="Вперёд 10 секунд">${vbi("f")}</button>
-          <span class="t" data-c>0:00</span><input type="range" min="0" max="1000" value="0" data-s aria-label="Перемотка"><span class="t" data-d>0:00</span>
-          <button class="vbm" data-a="m" aria-label="Звук">${vbi("vol")}</button><input class="vol vbm" type="range" min="0" max="100" value="100" data-v aria-label="Громкость">${canFs ? `<button data-a="fs" aria-label="На весь экран">${vbi("fs")}</button>` : ""}`;
-        scr.insertAdjacentElement("afterend", bar);
-        const q = x => bar.querySelector(x), seek = q("[data-s]"), dc = {};
-        const set = (k, el2, v) => { if (dc[k] !== v) { dc[k] = v; el2.textContent = v; } };
-        const draw = () => { if (document.hidden) return; const p = nowPos(); if (!seeking) { const v = dur > 0 ? Math.round(p / dur * 1000) : 0; if (dc.s !== v) { dc.s = v; seek.value = v; seek.style.setProperty("--p", v / 10 + "%"); } set("c", q("[data-c]"), fmtT(p)); } set("d", q("[data-d]"), dur > 0 ? fmtT(dur) : "0:00");
-          const ic = paused ? "play" : "pause"; if (dc.i !== ic) { dc.i = ic; q('[data-a="pp"]').innerHTML = vbi(ic); } };
-        draw(); const iv = setInterval(draw, 500);
-        bar.onclick = e => { const b = e.target.closest("button"); if (!b) return; const a = b.dataset.a;
-          if (a === "pp") post(paused ? "play" : "pause"); else if (a === "b" || a === "f") { const t = Math.max(0, Math.min(dur || 1e9, nowPos() + (a === "f" ? 10 : -10))); post("seek", { time: t }); t0 = t; at = Date.now(); }
-          else if (a === "m") { vol = vol > 0 ? 0 : 1; post("volume", { volume: vol }); q("[data-v]").value = vol * 100; b.innerHTML = vbi(vol ? "vol" : "mute"); }
-          else if (a === "fs") { if (document.fullscreenElement || document.webkitFullscreenElement) (document.exitFullscreen || document.webkitExitFullscreen).call(document); else { try { (scr.requestFullscreen || scr.webkitRequestFullscreen).call(scr); } catch {} } } };
-        seek.oninput = () => { seeking = true; seek.style.setProperty("--p", seek.value / 10 + "%"); set("c", q("[data-c]"), fmtT(seek.value / 1000 * dur)); };
-        seek.onchange = () => { const t = seek.value / 1000 * dur; seeking = false; if (dur > 0) { post("seek", { time: t }); t0 = t; at = Date.now(); } };
-        q("[data-v]").oninput = e => { vol = e.target.value / 100; post("volume", { volume: vol }); };
-        const num = v => (typeof v === "number" && isFinite(v) && v >= 0) ? v : null;
-        const onMsg = ev => {   // безопасность: origin, source, структура
-          if (ev.origin !== VB_ORIGIN || ev.source !== el.contentWindow || my !== gen) return;
-          const d = ev.data; if (!d || typeof d !== "object") return;
-          const p = d.data && typeof d.data === "object" ? d.data : d, name = String(d.type ?? d.event ?? p.type ?? p.event ?? "").toLowerCase(); if (!name) return;
-          if (name === "ready") { done = true; clearTimeout(tm); ov.remove(); return; }
-          ctx.vr = true; const t = num(p.time ?? p.currentTime), du = num(p.duration);
-          if (du) { dur = du; st.dur = du; }
-          if (t !== null) { t0 = t; at = Date.now(); st.pos = t; }
-          if (name === "play") { paused = false; t0 = nowPos(); at = Date.now(); ctx._ended = false; if (!began) { began = true; started = true; touchHistory(ctx); } }
-          else if (name === "pause") { t0 = t !== null ? t : nowPos(); paused = true; saveProgress(ctx, st.pos, st.dur); }
-          else if (name === "timeupdate") { if (paused && t !== null) { paused = false; at = Date.now(); } const n = Date.now(); if (!began) { began = true; started = true; touchHistory(ctx); } if (n - lastSave > 15000) { lastSave = n; saveProgress(ctx, st.pos, st.dur); } }
-          else if (name === "ended") { paused = true; ctx._ended = true; saveProgress(ctx, st.dur || st.pos, st.dur || st.pos); if (ctx.onNext) ctx.onNext(scr); }
-        };
-        window.addEventListener("message", onMsg); unbind = () => { clearTimeout(tm); clearInterval(iv); bar.remove(); window.removeEventListener("message", onMsg); };
+        el.addEventListener("load", () => { clearTimeout(tmr); ov.remove(); });
+        tmr = setTimeout(() => { if (my !== gen) return; ov.remove(); errOv("Плеер долго не отвечает", i); }, 20000);
       }
     }
     $$(".pp-src", root).forEach(b => b.setAttribute("aria-current", b.dataset.i == i));
@@ -1036,7 +983,7 @@ function initPlayer(root, items, ctx) {
   const first = () => play(0);
   $("#ppGo", root).onclick = async () => {
     const r = ctx.resume;
-    if (me && r && !r.completed && r.position_seconds > 30) {
+    if (me && r && !r.completed && r.position_seconds > 30 && items[0].r.kind === "video") {
       scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Продолжить просмотр с ${fmtT(r.position_seconds)}</b><button class="btn fill" id="ppRes">Продолжить</button><button class="btn line" id="ppRst">Начать сначала</button></div>`);
       $("#ppRes", scr).onclick = () => play(0, r.position_seconds);
       $("#ppRst", scr).onclick = () => { items.forEach(x => ls.set("pos:" + (x.r.src || ""), 0)); play(0, 0); };
@@ -1056,28 +1003,25 @@ async function nexstreamEmbed(payload) {
   if (!data || !data.url) throw new Error((data && data.error) || "NexStream не вернул ссылку.");
   return data.url;
 }
-/* ---- Провайдеры: VidBolt (https://vidbolt.xyz, iframe + postMessage) и NexStream (лениво, резерв) ---- */
-const VB_ORIGIN = "https://vidbolt.xyz";
-function vidboltUrl(type, tmdb, season, episode, startAt) {
+/* ---- EmbedWave (https://embedwave.cc/docs): только iframe, URL из TMDB ID; postMessage/прогресс/язык в документации отсутствуют ---- */
+const EW_ORIGIN = "https://embedwave.cc", EW_SERVERS = [["nxsha", "Multi HD"], ["cinesrc", "Cinesrc"], ["videasy", "4K"]];
+function embedwaveUrl(type, tmdb, season, episode, server) {
   const id = Number(tmdb); if (!Number.isInteger(id) || id <= 0) return null;
   let p;
-  if (type === "movie") p = `/movie/${id}`;
-  else if (type === "tv") { const s = Number(season), e = Number(episode); if (!Number.isInteger(s) || s < 0 || !Number.isInteger(e) || e < 1) return null; p = `/tv/${id}/${s}/${e}`; }
+  if (type === "movie") p = `/embed/movie/${id}`;
+  else if (type === "tv") { const s = Number(season), e = Number(episode); if (!Number.isInteger(s) || s < 1 || !Number.isInteger(e) || e < 1) return null; p = `/embed/tv/${id}/${s}/${e}`; }   // по документации сезон и серия с 1
   else return null;
-  const q = new URLSearchParams({ autoPlay: "true", theme: "ffffff" }); if (startAt !== undefined && startAt >= 0) q.set("startAt", String(Math.floor(startAt)));
-  return VB_ORIGIN + p + "?" + q.toString();
+  return EW_ORIGIN + p + (server ? "?server=" + server : "");
 }
 function autoItems(type, tmdb, season, episode) {
-  const out = [], url = vidboltUrl(type, tmdb, season, episode); if (!url) return out;
-  out.push({ title: "VidBolt", note: "", url, quality: "Auto", provider: "vidbolt", build: s => vidboltUrl(type, tmdb, season, episode, s) || url, r: { kind: "frame", src: url, host: "vidbolt.xyz" } });
+  const out = [];
+  EW_SERVERS.forEach(([sv, label], k) => { const url = embedwaveUrl(type, tmdb, season, episode, k ? sv : ""); if (url) out.push({ title: k ? "EmbedWave · " + label : "EmbedWave", note: "", url, quality: label, provider: "embedwave", noRef: true, r: { kind: "frame", src: url, host: "embedwave.cc" } }); });
+  if (!out.length) return out;
   const payload = type === "movie" ? { type: "movie", tmdb_id: Number(tmdb) } : { type: "tv", tmdb_id: Number(tmdb), season: Number(season), episode: Number(episode) };
   out.push({ title: "NexStream", note: "", url: "", quality: "Embed", provider: "nexstream", lazy: () => nexstreamEmbed(payload), r: { kind: "frame", src: "", host: "nexstream" } });
-  if (ls.get("watch:prov") === "nexstream") out.reverse();
+  if (ls.get("watch:prov") === "nexstream") out.unshift(out.pop());
   return out;
 }
-const VBI = { play: "M8 5v14l11-7z", pause: "M6 19h4V5H6zm8-14v14h4V5z", b: "M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z", f: "M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z", fs: "M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z",
-  vol: "M3 9v6h4l5 5V4L7 9zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02z", mute: "M3 9v6h4l5 5V4L7 9zm13.6.6L18 8l2 2 2-2 1.4 1.6-2 2 2 2L22 15.400l-2-2-2 2L16.600 14l2-2z" };
-const vbi = k => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${VBI[k]}"/></svg>`;
 async function detail(app, type, id) {
   let { data: m, error } = await sb.from("titles").select(DSEL).eq("id", id).maybeSingle();
   if (error) throw new Error(t("loaderr") + ": " + error.message);
@@ -1110,7 +1054,7 @@ async function detail(app, type, id) {
 
     ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<a class="person"${p.people.tmdb_id ? ` href="#/person/${p.people.tmdb_id}"` : ""}>${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></a>`).join("")}</div></section>` : ""}
     ${row(t("similar"), sim)}<div style="height:60px"></div>`;
-  initPlayer(app, pit, { title_id: m.id, episode_id: null, resume, tmdb: m.tmdb_id, media_type: "movie" });
+  initPlayer(app, pit, { title_id: m.id, episode_id: null, resume });
   if (m.media_type === "tv") seasonsUI($("#epsec", app), m, seasons);
   let cur = fav;
   $("#fv").onclick = async e => {
@@ -1357,7 +1301,7 @@ async function episodePage(app, id) {
   const i = all.findIndex(x => x.id === e.id), prev = all[i - 1], next = all[i + 1];
   const srcs = (e.episode_sources || []).slice().sort((a, b) => a.ord - b.ord).map(x => ({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
   let items = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r), nexstreamError = "";
-  items = items.concat(autoItems("tv", m.tmdb_id, e.seasons.season_number, e.episode_number)); if (!items.length) nexstreamError = "Неверный TMDB ID, сезон или серия.";
+  items = items.concat(autoItems("tv", m.tmdb_id, e.seasons.season_number, e.episode_number)); if (!items.length) nexstreamError = e.seasons.season_number < 1 ? "EmbedWave не поддерживает спецвыпуски (сезон 0)." : "Неверный TMDB ID или серия.";
   const code = `С${e.seasons.season_number} · Е${e.episode_number}`;
   const nav = x => `#/episode/${x.id}`;
   app.innerHTML = `<div class="page" style="padding-top:96px"><a href="#/tv/${m.id}" style="color:var(--mute)">← ${esc(T(m))}</a>
@@ -1367,7 +1311,7 @@ async function episodePage(app, id) {
     <div class="btns" style="margin:16px 0">${prev ? `<a class="btn line" href="${nav(prev)}">← Предыдущая</a>` : ""}${next ? `<a class="btn fill" href="${nav(next)}">Следующая серия →</a>` : ""}</div></div>`;
   if (items.length) {
     const resume = await getResume(m.id, e.id);
-    initPlayer(app, items, { title_id: m.id, episode_id: e.id, resume, tmdb: m.tmdb_id, media_type: "tv", season: Number(e.seasons.season_number), episode: Number(e.episode_number), onNext: scr => { if (!next) return; scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Серия завершена</b><a class="btn fill" href="${nav(next)}">Следующая серия</a></div>`); } });
+    initPlayer(app, items, { title_id: m.id, episode_id: e.id, resume, onNext: scr => { if (!next) return; scr.insertAdjacentHTML("beforeend", `<div class="pp-over"><b>Серия завершена</b><a class="btn fill" href="${nav(next)}">Следующая серия</a></div>`); } });
   }
 }
 
