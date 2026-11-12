@@ -970,12 +970,6 @@ function initPlayer(root, items, ctx) {
       el = document.createElement("iframe");
       el.src = s.r.kind === "plyr" ? (s.r.prov === "youtube" ? `https://www.youtube-nocookie.com/embed/${s.r.id}?rel=0&autoplay=1` : `https://player.vimeo.com/video/${s.r.id}?autoplay=1`) : s.r.src;
       el.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; el.allowFullscreen = true; el.referrerPolicy = s.noRef ? "no-referrer" : "strict-origin-when-cross-origin"; el.title = s.title; scr.appendChild(el);
-      if (s.provider === "embedwave") {   // событий плеера нет: индикатор загрузки и ручной повтор, без циклов
-        touchHistory(ctx);
-        const ov = document.createElement("div"); ov.className = "pp-over"; ov.innerHTML = "<b>Загрузка плеера…</b>"; scr.appendChild(ov);
-        el.addEventListener("load", () => { clearTimeout(tmr); ov.remove(); });
-        tmr = setTimeout(() => { if (my !== gen) return; ov.remove(); errOv("Плеер долго не отвечает", i); }, 20000);
-      }
     }
     $$(".pp-src", root).forEach(b => b.setAttribute("aria-current", b.dataset.i == i));
     $("#ppN", root).innerHTML = `<b>${esc(s.title)}</b><span>${s.quality ? esc(s.quality) : ""}</span>`;
@@ -1003,20 +997,15 @@ async function nexstreamEmbed(payload) {
   if (!data || !data.url) throw new Error((data && data.error) || "NexStream не вернул ссылку.");
   return data.url;
 }
-/* ---- EmbedWave (https://embedwave.cc/docs): только iframe, URL из TMDB ID; postMessage/прогресс/язык в документации отсутствуют ---- */
-const EW_ORIGIN = "https://embedwave.cc", EW_SERVERS = [["nxsha", "Multi HD"], ["cinesrc", "Cinesrc"], ["videasy", "4K"]];
-function embedwaveUrl(type, tmdb, season, episode, server) {
-  const id = Number(tmdb); if (!Number.isInteger(id) || id <= 0) return null;
-  let p;
-  if (type === "movie") p = `/embed/movie/${id}`;
-  else if (type === "tv") { const s = Number(season), e = Number(episode); if (!Number.isInteger(s) || s < 1 || !Number.isInteger(e) || e < 1) return null; p = `/embed/tv/${id}/${s}/${e}`; }   // по документации сезон и серия с 1
-  else return null;
-  return EW_ORIGIN + p + (server ? "?server=" + server : "");
+function idsOk(type, tmdb, season, episode) {
+  const id = Number(tmdb); if (!Number.isInteger(id) || id <= 0) return false;
+  if (type === "movie") return true;
+  const s = Number(season), e = Number(episode);
+  return type === "tv" && Number.isInteger(s) && s >= 1 && Number.isInteger(e) && e >= 1;
 }
 function autoItems(type, tmdb, season, episode) {
   const out = [];
-  EW_SERVERS.forEach(([sv, label], k) => { const url = embedwaveUrl(type, tmdb, season, episode, k ? sv : ""); if (url) out.push({ title: k ? "EmbedWave · " + label : "EmbedWave", note: "", url, quality: label, provider: "embedwave", noRef: true, r: { kind: "frame", src: url, host: "embedwave.cc" } }); });
-  if (!out.length) return out;
+  if (!idsOk(type, tmdb, season, episode)) return out;   // только проверка ID
   const payload = type === "movie" ? { type: "movie", tmdb_id: Number(tmdb) } : { type: "tv", tmdb_id: Number(tmdb), season: Number(season), episode: Number(episode) };
   out.push({ title: "NexStream", note: "", url: "", quality: "Embed", provider: "nexstream", lazy: () => nexstreamEmbed(payload), r: { kind: "frame", src: "", host: "nexstream" } });
   if (ls.get("watch:prov") === "nexstream") out.unshift(out.pop());
@@ -1301,7 +1290,7 @@ async function episodePage(app, id) {
   const i = all.findIndex(x => x.id === e.id), prev = all[i - 1], next = all[i + 1];
   const srcs = (e.episode_sources || []).slice().sort((a, b) => a.ord - b.ord).map(x => ({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
   let items = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r), nexstreamError = "";
-  items = items.concat(autoItems("tv", m.tmdb_id, e.seasons.season_number, e.episode_number)); if (!items.length) nexstreamError = e.seasons.season_number < 1 ? "EmbedWave не поддерживает спецвыпуски (сезон 0)." : "Неверный TMDB ID или серия.";
+  items = items.concat(autoItems("tv", m.tmdb_id, e.seasons.season_number, e.episode_number)); if (!items.length) nexstreamError = e.seasons.season_number < 1 ? "NexStream не поддерживает спецвыпуски (сезон 0)." : "Неверный TMDB ID или серия.";
   const code = `С${e.seasons.season_number} · Е${e.episode_number}`;
   const nav = x => `#/episode/${x.id}`;
   app.innerHTML = `<div class="page" style="padding-top:96px"><a href="#/tv/${m.id}" style="color:var(--mute)">← ${esc(T(m))}</a>
