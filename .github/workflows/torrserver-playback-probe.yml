@@ -1,0 +1,90 @@
+name: TorrServer playback probe
+
+on:
+  push:
+    branches:
+      - feat/nxsha-source
+    paths:
+      - .github/workflows/torrserver-playback-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  torrserver-playback-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Start TorrServer
+        run: |
+          docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:8090:8090 \
+            --name torrserver-probe \
+            ghcr.io/youfou/torrserver:latest &
+          echo $! > /tmp/torrserver-pid
+
+      - name: Wait for TorrServer
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8090/ > /tmp/torrserver-health.json; then
+              echo "TorrServer is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "TorrServer did not become healthy"
+          docker logs torrserver-probe --tail 100
+          exit 2
+
+      - name: Add Russian Iron Man 3 torrent
+        run: |
+          magnet='magnet:?xt=urn:btih:E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3&tr=http%3A%2F%2Fbt4.t-ru.org%2Fann%3Fmagnet'
+          curl -fsS --max-time 30 \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"action\":\"add\",\"link\":\"${magnet}\"}" \
+            http://127.0.0.1:8090/ \
+            > /tmp/torrserver-add.json
+          cat /tmp/torrserver-add.json
+
+      - name: Inspect torrent status and audio metadata
+        shell: bash
+        run: |
+          set +e
+          curl -fsS --max-time 60 'http://127.0.0.1:8090/stream?link=magnet%3A%3Fxt%3Durn%3Abtih%3AE25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3%26tr%3Dhttp%253A%252F%252Fbt4.t-ru.org%252Fann%253Fmagnet&play=true' \
+            > /tmp/torrserver-stream.json
+          result=$?
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          try:
+              data = json.loads(Path('/tmp/torrserver-stream.json').read_text())
+          except Exception:
+              data = {}
+          text = json.dumps(data, ensure_ascii=False, default=str)
+          russian = bool(re.search(r'(?i)(russian|\br u\b|\brus\b|\bru-ru\b|дубляж|озвучк|перевод)', text))
+          report = {
+            'candidate': 'TorrServer',
+            'testedFrom': 'GitHub Actions, not Render',
+            'movie': 'Iron Man 3',
+            'streamResponseKeys': list(data.keys()),
+            'russianMarkersFound': russian,
+            'responsePreview': text[:3000],
+            'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
+          }
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          Path('/tmp/torrserver-report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
+          PY
+          cat /tmp/torrserver-report.json
+          echo "Probe exit code: $result"
+          exit "$result"
+
+      - name: Stop TorrServer
+        if: always()
+        run: |
+          docker stop torrserver-probe 2>/dev/null || true
