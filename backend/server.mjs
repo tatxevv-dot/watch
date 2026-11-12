@@ -5,10 +5,56 @@ import { serve } from '@hono/node-server';
 import upstream from './index.js';
 import { extract } from './src/extractors/nxsha.js';
 import { encodeProxyUrl } from './src/proxy.js';
-const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN, TORRSERVER_URL, JACKETT_URL, JACKETT_API_KEY } = process.env;
+const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN, TORRSERVER_URL } = process.env;
 if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 32 || !SIGNING_SECRET || SIGNING_SECRET.length < 32 || !ALLOWED_ORIGIN) throw new Error('Configure ADMIN_TOKEN, SIGNING_SECRET (32+ characters) and ALLOWED_ORIGIN');
 if (!TORRSERVER_URL) throw new Error('Configure TORRSERVER_URL');
+const YTS_HOSTS = ['https://yts.mx', 'https://yts.lt', 'https://yts.am'];
+const TRACKERS = ['udp://tracker.opentrackr.org:1337/announce', 'udp://open.demonii.com:1337/announce', 'udp://tracker.openbittorrent.com:80', 'udp://tracker.torrent.eu.org:451/announce', 'udp://open.stealth.si:80/announce', 'udp://exodus.desync.com:6969/announce', 'udp://tracker.moeru.ai:6969/announce'];
+async function searchYts(title, year) {
+  let movies = null;
+  for (const host of YTS_HOSTS) {
+    try {
+      const r = await fetch(`${host}/api/v2/list_movies.json?query_term=${encodeURIComponent(title)}&limit=20`, { headers: { Accept: 'application/json' }, signal: AbortSignal.timeout(10000) });
+      if (!r.ok) continue;
+      const d = await r.json();
+      movies = d?.data?.movies || [];
+      break;
+    } catch {}
+  }
+  if (movies === null) throw new Error('YTS unavailable');
+  const norm = t => String(t).toLowerCase().replace(/[^\p{L}\p{N}]+/gu, ' ').trim();
+  const q = norm(title);
+  let list = movies.filter(m => !year || String(m.year) === year);
+  const exact = list.filter(m => norm(m.title) === q || norm(m.title_english || '') === q);
+  if (exact.length) list = exact;
+  else if (title) list = list.filter(m => norm(m.title).includes(q) || q.includes(norm(m.title)));
+  const items = [];
+  for (const m of list) for (const t of m.torrents || []) {
+    if (!t.hash) continue;
+    const hevc = /x265|hevc/i.test(t.video_codec || '') || t.quality === '2160p';
+    items.push({ m, t, hevc });
+  }
+  if (!items.length) return null;
+  const pool = items.some(i => !i.hevc) ? items.filter(i => !i.hevc) : items;
+  pool.sort((a, b) => (b.t.seeds || 0) - (a.t.seeds || 0));
+  const { m, t } = pool[0];
+  const name = `${m.title_long || m.title} [${t.quality}]`;
+  const magnet = `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(name)}` + TRACKERS.map(x => '&tr=' + encodeURIComponent(x)).join('');
+  return { magnet, name, seeders: t.seeds || 0, size: t.size_bytes || 0, hash: t.hash };
+}
 const app = new Hono();
+const hits = new Map();
+const limited = (c, key, max) => {
+  const ip = (c.req.header('x-forwarded-for') || '').split(',')[0].trim() || 'unknown', k = key + ip, now = Date.now();
+  const list = (hits.get(k) || []).filter(t => now - t < 60000);
+  if (list.length >= max) { hits.set(k, list); return true; }
+  list.push(now); hits.set(k, list); if (hits.size > 5000) hits.clear();
+  return false;
+};
+const magnetSig = hash => createHmac('sha256', SIGNING_SECRET).update('magnet:' + String(hash).toLowerCase()).digest('hex');
+const isAdmin = c => equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN);
+const fromSite = c => c.req.header('origin') === ALLOWED_ORIGIN;
+let streaming = 0;
 let extracting = 0;
 const equal = (a, b) => { const x = Buffer.from(a), y = Buffer.from(b); return x.length === y.length && timingSafeEqual(x, y); };
 function signature(u) {
@@ -59,8 +105,8 @@ app.post('/api/extract', async c => {
 });
 app.use('/api/torrent/search', bodyLimit({ maxSize: 2048 }));
 app.post('/api/torrent/search', async c => {
-  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
-  if (!JACKETT_URL || !JACKETT_API_KEY) return c.json({ error: 'Torrent search is not configured' }, 503);
+  if (!fromSite(c) && !isAdmin(c)) return c.json({ error: 'Forbidden' }, 403);
+  if (limited(c, 'search:', 20)) return c.json({ error: 'Too many requests' }, 429);
   let title, year;
   try {
     const body = await c.req.json();
@@ -69,55 +115,65 @@ app.post('/api/torrent/search', async c => {
     if (!title) throw new Error();
   } catch { return c.json({ error: 'Expected a movie title' }, 400); }
   try {
-    const query = [title, year].filter(Boolean).join(' ');
-    const url = `${JACKETT_URL.replace(/\/$/, '')}/api/v2.0/indexers/all/results?apikey=${encodeURIComponent(JACKETT_API_KEY)}&Query=${encodeURIComponent(query)}&Category=2000&Limit=25`;
-    const response = await fetch(url, { headers: { Accept: 'application/json' } });
-    if (!response.ok) throw new Error('Jackett search failed');
-    const data = await response.json();
-    const results = (data.Results || []).filter(r => r.MagnetUri || (r.Link && r.Link.startsWith('magnet:')));
-    results.sort((a, b) => (b.Seeders || 0) - (a.Seeders || 0));
-    const best = results[0];
+    const best = await searchYts(title, year);
     if (!best) return c.json({ error: 'Source not found' }, 404);
-    const magnet = best.MagnetUri || best.Link;
-    return c.json({ magnet, name: best.Title || '', seeders: best.Seeders || 0, size: best.Size || 0 });
+    return c.json({ magnet: best.magnet, name: best.name, seeders: best.seeders, size: best.size, sig: magnetSig(best.hash) });
   } catch { return c.json({ error: 'Torrent search failed' }, 502); }
 });
 app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
 app.post('/api/torrent/stream', async c => {
-  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
-  let magnet;
+  let magnet, sig;
   try {
     const body = await c.req.json();
-    magnet = String(body.magnet || '');
+    magnet = String(body.magnet || ''); sig = String(body.sig || '');
     if (!magnet.startsWith('magnet:?xt=urn:btih:')) throw new Error();
   } catch { return c.json({ error: 'Expected a magnet link' }, 400); }
+  const admin = isAdmin(c);
+  if (!admin) {
+    const h = new URL(magnet).searchParams.get('xt')?.replace('urn:btih:', '') || '';
+    if (!fromSite(c) || !sig || !equal(sig, magnetSig(h))) return c.json({ error: 'Forbidden' }, 403);
+    if (limited(c, 'stream:', 6)) return c.json({ error: 'Too many requests' }, 429);
+    if (streaming >= 3) return c.json({ error: 'Busy, retry later' }, 429);
+  }
+  streaming++;
+  const ts = (path, body, ms = 20000) => fetch(`${TORRSERVER_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ms) });
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
   try {
-    const addResponse = await fetch(`${TORRSERVER_URL}/torrents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', link: magnet, title: 'Torrent', save_to_db: false })
-    });
-    if (!addResponse.ok) throw new Error('TorrServer add failed');
     const hash = new URL(magnet).searchParams.get('xt')?.replace('urn:btih:', '');
     if (!hash) throw new Error('Invalid magnet hash');
-    for (let attempt = 0; attempt < 60; attempt++) {
-      const statusResponse = await fetch(`${TORRSERVER_URL}/torrents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get', hash })
-      });
-      const status = await statusResponse.json();
-      if (status.stat_string === 'Torrent working') {
-        const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=1`;
-        const expiry = Math.floor(Date.now() / 1000) + 14400;
-        const base = new URL(c.req.url).origin;
-        const proxyUrl = signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry);
-        return c.json({ streamUrl: proxyUrl });
-      }
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    const started = Date.now();
+    // wake up TorrServer (free Render sleeps) and add the torrent
+    let added = false, lastErr = '';
+    while (!added && Date.now() - started < 70000) {
+      try {
+        const r = await ts('/torrents', { action: 'add', link: magnet, title: 'Torrent', save_to_db: false }, 25000);
+        if (r.ok) added = true; else lastErr = 'add HTTP ' + r.status;
+      } catch (e) { lastErr = 'add ' + (e?.message || e); }
+      if (!added) await sleep(3000);
     }
-    throw new Error('TorrServer did not become ready');
-  } catch { return c.json({ error: 'TorrServer stream failed' }, 502); }
+    if (!added) { console.error('TorrServer unavailable:', lastErr); return c.json({ error: 'TorrServer is waking up, retry in a minute' }, 503); }
+    while (Date.now() - started < 85000) {
+      try {
+        const r = await ts('/torrents', { action: 'get', hash }, 10000);
+        if (r.ok) {
+          const st = await r.json();
+          if (st.stat_string === 'Torrent working' || (st.file_stats && st.file_stats.length)) {
+            const files = (st.file_stats || []).filter(f => /\.(mp4|m4v|webm|mkv|avi|mov)$/i.test(f.path || ''));
+            const main = files.sort((x, y) => (y.length || 0) - (x.length || 0))[0] || st.file_stats?.[0];
+            const index = main?.id || 1;
+            const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
+            const expiry = Math.floor(Date.now() / 1000) + 14400;
+            const base = new URL(c.req.url).origin;
+            return c.json({ streamUrl: signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry) });
+          }
+        } else console.error('TorrServer get HTTP', r.status);
+      } catch (e) { console.error('TorrServer get error:', e?.message || e); }
+      await sleep(3000);
+    }
+    console.error('TorrServer: no peers/metadata in time');
+    return c.json({ error: 'No peers yet, try again or another title' }, 504);
+  } catch (e) { console.error('stream failed:', e?.message || e); return c.json({ error: 'TorrServer stream failed' }, 502); }
+  finally { streaming--; }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
@@ -136,4 +192,12 @@ app.get('/proxy', async c => {
   } catch { return c.json({ error: 'Video upstream unavailable' }, 502); }
 });
 app.onError((_error, c) => c.json({ error: 'Backend error' }, 500));
+/* KEEPALIVE=1: не даёт бесплатному Render усыплять бэкенд и TorrServer (пинг раз в 9 минут) */
+if (process.env.KEEPALIVE === '1') {
+  const self = process.env.RENDER_EXTERNAL_URL;
+  setInterval(() => {
+    if (self) fetch(self + '/health', { signal: AbortSignal.timeout(20000) }).catch(() => {});
+    fetch(TORRSERVER_URL + '/echo', { signal: AbortSignal.timeout(20000) }).catch(() => {});
+  }, 9 * 60 * 1000);
+}
 serve({ fetch: app.fetch, hostname: '0.0.0.0', port: Number(process.env.PORT || 10000) });
