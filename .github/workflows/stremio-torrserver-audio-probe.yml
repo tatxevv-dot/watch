@@ -1,0 +1,97 @@
+name: Stremio TorrServer addon audio probe
+
+on:
+  push:
+    branches:
+      - feat/nxsha-source
+    paths:
+      - .github/workflows/stremio-torrserver-audio-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  stremio-torrserver-audio-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Clone and build Stremio TorrServer addon
+        run: |
+          git clone --depth 1 https://github.com/notmalicik/stremio-addon-torrserver.git /tmp/stremio-addon
+          docker build -t stremio-addon-torrserver /tmp/stremio-addon
+
+      - name: Start Stremio TorrServer addon
+        run: |
+          docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:7000:7000 \
+            --name stremio-torrserver-probe \
+            stremio-addon-torrserver &
+          echo $! > /tmp/stremio-pid
+
+      - name: Wait for addon
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:7000/manifest.json > /tmp/stremio-manifest.json; then
+              echo "Stremio addon is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "Stremio addon did not become healthy"
+          docker logs stremio-torrserver-probe --tail 100
+          exit 2
+
+      - name: Request Iron Man 3 stream and inspect Russian audio
+        shell: bash
+        run: |
+          set +e
+          curl -fsS --max-time 180 'http://127.0.0.1:7000/stream/movie/tt1300854.json' > /tmp/stremio-streams.json
+          result=$?
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          try:
+              data = json.loads(Path('/tmp/stremio-streams.json').read_text())
+          except Exception:
+              data = {}
+          streams = data.get('streams') or []
+          russian = []
+          markers = re.compile(r'(?i)(russian|\br u\b|\brus\b|\bru-ru\b|дубляж|озвучк|перевод)')
+          for index, stream in enumerate(streams):
+              text = json.dumps(stream, ensure_ascii=False, default=str)
+              if markers.search(text):
+                  russian.append({
+                    'index': index,
+                    'name': stream.get('name'),
+                    'title': stream.get('title'),
+                    'url': stream.get('url'),
+                    'infoHash': stream.get('infoHash'),
+                    'behaviorHints': stream.get('behaviorHints'),
+                    'externalUrl': stream.get('externalUrl')
+                  })
+          report = {
+            'candidate': 'notmalicik/stremio-addon-torrserver',
+            'testedFrom': 'GitHub Actions, not Render',
+            'imdbId': 'tt1300854',
+            'movie': 'Iron Man 3',
+            'streamsFound': len(streams),
+            'russianStreams': len(russian),
+            'russianResults': russian,
+            'limitations': ['Metadata inspection only', 'No Jackett or TorrServer configured', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
+          }
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          Path('/tmp/stremio-report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
+          PY
+          cat /tmp/stremio-report.json
+          echo "Probe exit code: $result"
+          exit "$result"
+
+      - name: Stop Stremio addon container
+        if: always()
+        run: |
+          docker stop stremio-torrserver-probe 2>/dev/null || true

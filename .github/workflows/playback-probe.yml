@@ -1,0 +1,42 @@
+name: Alternative provider playback probe
+on:
+  push:
+    branches: [feat/nxsha-source]
+    paths:
+      - tests/playback-probe.mjs
+      - .github/workflows/playback-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  playback-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Fetch fixed candidate revision
+        run: |
+          git clone https://github.com/x8rr/movies.git "$RUNNER_TEMP/movies-probe"
+          git -C "$RUNNER_TEMP/movies-probe" checkout bf57ffd029996b86cf86f7f16d919b4fb79e9bad
+      - name: Build isolated candidate image
+        run: docker build -t watch-playback-probe "$RUNNER_TEMP/movies-probe"
+      - name: Verify limited HLS playback without publishing a server
+        shell: bash
+        run: |
+          set +e
+          timeout 150s docker run --rm --memory=512m --cpus=1 \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/playback-probe.mjs",target=/app/probe.mjs,readonly \
+            --entrypoint bun watch-playback-probe /app/probe.mjs > /tmp/playback-report.json
+          result=$?
+          cat /tmp/playback-report.json
+          {
+            echo '## Alternative provider playback probe'
+            echo 'This downloads only the first small HLS segments. It does not verify full playback, Render access or content permissions.'
+            echo '```json'
+            cat /tmp/playback-report.json
+            echo '```'
+            echo "Probe exit code: $result"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"

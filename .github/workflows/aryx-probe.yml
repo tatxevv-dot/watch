@@ -1,0 +1,31 @@
+name: Aryx HLS extraction probe
+on:
+  push:
+    branches: [feat/nxsha-source]
+    paths: [tests/aryx-probe.sh, .github/workflows/aryx-probe.yml]
+permissions:
+  contents: read
+jobs:
+  aryx-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Fetch candidate
+        run: git clone https://github.com/AryxK6/aryx-m3u8-scraper.git "$RUNNER_TEMP/aryx-probe"
+      - name: Build isolated candidate image
+        run: docker build -t aryx-probe "$RUNNER_TEMP/aryx-probe"
+      - name: Start server and test HLS extraction
+        shell: bash
+        run: |
+          set +e
+          docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:4000:4000 \
+            -e TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            -e TMDB_BEARER_TOKEN="${{ secrets.TMDB_BEARER_TOKEN }}" \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/aryx-probe.sh",target=/app/probe.sh,readonly \
+            --entrypoint bash aryx-probe /app/probe.sh
+          result=$?
+          echo "Probe exit code: $result"
+          exit "$result"

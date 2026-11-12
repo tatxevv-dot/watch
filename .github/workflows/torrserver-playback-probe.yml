@@ -1,0 +1,129 @@
+name: TorrServer playback probe
+
+on:
+  push:
+    branches:
+      - feat/nxsha-source
+    paths:
+      - .github/workflows/torrserver-playback-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  torrserver-playback-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Install FFmpeg
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y ffmpeg
+
+      - name: Start TorrServer
+        run: |
+          docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:8090:8090 \
+            --name torrserver-probe \
+            ghcr.io/yourok/torrserver:master &
+          echo $! > /tmp/torrserver-pid
+
+      - name: Wait for TorrServer
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8090/ > /tmp/torrserver-health.json; then
+              echo "TorrServer is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "TorrServer did not become healthy"
+          docker logs torrserver-probe --tail 100
+          exit 2
+
+      - name: Add Russian Iron Man 3 torrent
+        run: |
+          magnet='magnet:?xt=urn:btih:E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3&tr=http%3A%2F%2Fbt4.t-ru.org%2Fann%3Fmagnet'
+          curl -fsS --max-time 60 \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            -d "{\"action\":\"add\",\"link\":\"${magnet}\",\"title\":\"Iron Man 3 Russian Dub\",\"save_to_db\":false}" \
+            http://127.0.0.1:8090/torrents \
+            > /tmp/torrserver-add.json
+          cat /tmp/torrserver-add.json
+
+      - name: Wait for torrent metadata
+        run: |
+          for attempt in $(seq 1 60); do
+            curl -fsS --max-time 30 \
+              -X POST \
+              -H 'Content-Type: application/json' \
+              -d '{"action":"get","hash":"E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3"}' \
+              http://127.0.0.1:8090/torrents \
+              > /tmp/torrserver-status.json
+            status=$(python3 -c "import json; print(json.load(open('/tmp/torrserver-status.json')).get('stat_string',''))")
+            echo "Attempt $attempt: $status"
+            if [ "$status" = "Torrent working" ]; then
+              exit 0
+            fi
+            sleep 5
+          done
+          echo "TorrServer did not become ready"
+          docker logs torrserver-probe --tail 100
+          exit 2
+
+      - name: Inspect audio tracks with FFmpeg
+        shell: bash
+        run: |
+          set +e
+          stream_url='http://127.0.0.1:8090/stream?link=magnet%3A%3Fxt%3Durn%3Abtih%3AE25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3%26tr%3Dhttp%253A%252F%252Fbt4.t-ru.org%252Fann%253Fmagnet&play=true&index=1'
+          ffmpeg -hide_banner -i "$stream_url" -t 10 -f null - > /tmp/ffmpeg-output.txt 2>&1
+          result=$?
+          FFMPEG_EXIT_CODE="$result" python3 - <<'PY'
+          import json, os, re
+          from pathlib import Path
+          output = Path('/tmp/ffmpeg-output.txt').read_text(errors='ignore')
+          blocks = re.split(r'(?=Stream #\d+:\d+)', output)
+          audio = []
+          russian = []
+          for block in blocks:
+              stream_match = re.search(r'Stream #\d+:\d+\(([^)]*)\): Audio: ([^,\n]+)', block)
+              if not stream_match:
+                  continue
+              language = (stream_match.group(1) or '').strip().lower()
+              codec = stream_match.group(2).strip()
+              title_match = re.search(r'^\s*title\s*:\s*(.+)$', block, re.MULTILINE)
+              title = (title_match.group(1) if title_match else '').strip()
+              is_russian = language in ('ru', 'rus', 'ru-ru') or any(word in (language + ' ' + title).lower() for word in ('russian', 'дубляж', 'озвучк', 'перевод'))
+              item = {'codec': codec, 'language': language, 'title': title}
+              audio.append(item)
+              if is_russian:
+                  russian.append(item)
+          report = {
+            'candidate': 'TorrServer + FFmpeg',
+            'testedFrom': 'GitHub Actions, not Render',
+            'movie': 'Iron Man 3',
+            'ffmpegExitCode': int(os.environ.get('FFMPEG_EXIT_CODE', '-1')),
+            'audioTracksFound': len(audio),
+            'russianAudioTracks': len(russian),
+            'russianTracks': russian,
+            'allAudioTracks': audio,
+            'ffmpegOutput': output[:5000],
+            'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
+          }
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          Path('/tmp/torrserver-report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
+          PY
+          cat /tmp/torrserver-report.json
+          echo "Probe exit code: $result"
+          exit "$result"
+
+      - name: Stop TorrServer
+        if: always()
+        run: |
+          docker stop torrserver-probe 2>/dev/null || true

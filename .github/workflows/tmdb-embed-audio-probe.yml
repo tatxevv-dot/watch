@@ -1,0 +1,89 @@
+name: TMDB Embed API audio language probe
+
+on:
+  push:
+    branches:
+      - feat/nxsha-source
+    paths:
+      - .github/workflows/tmdb-embed-audio-probe.yml
+
+permissions:
+  contents: read
+
+jobs:
+  tmdb-embed-audio-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+
+      - name: Start official TMDB Embed API container
+        run: |
+          docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:8787:8787 \
+            -e TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
+            --name tmdb-embed-probe \
+            inside4ndroid/tmdb-embed-api:latest &
+          echo $! > /tmp/tmdb-embed-pid
+
+      - name: Wait for API health
+        run: |
+          for attempt in $(seq 1 60); do
+            if curl -fsS http://127.0.0.1:8787/api/health > /tmp/tmdb-embed-health.json; then
+              echo "TMDB Embed API is healthy"
+              exit 0
+            fi
+            sleep 1
+          done
+          echo "TMDB Embed API did not become healthy"
+          docker logs tmdb-embed-probe --tail 100
+          exit 2
+
+      - name: Request movie sources and inspect audio languages
+        shell: bash
+        run: |
+          set +e
+          curl -fsS --max-time 180 'http://127.0.0.1:8787/api/streams/movie/68721' > /tmp/tmdb-embed-sources.json
+          result=$?
+          python3 - <<'PY'
+          import json, re
+          from pathlib import Path
+          try:
+              data = json.loads(Path('/tmp/tmdb-embed-sources.json').read_text())
+          except Exception:
+              data = {}
+          sources = data.get('streams') or []
+          russian = []
+          samples = []
+          russian_markers = re.compile(r'(?i)(\br u\b|\brus\b|\bru-ru\b|russian|дубляж|озвучк|перевод)')
+          for index, source in enumerate(sources):
+              text = json.dumps(source, ensure_ascii=False, default=str)
+              if russian_markers.search(text):
+                  russian.append({'index': index, 'source': source})
+              if index < 5:
+                  samples.append(source)
+          report = {
+            'candidate': 'Inside4ndroid/TMDB-Embed-API',
+            'testedFrom': 'GitHub Actions, not Render',
+            'tmdbId': 68721,
+            'movie': 'Iron Man 3',
+            'sourcesFound': len(sources),
+            'russianAudioTracks': len(russian),
+            'russianSources': russian[:20],
+            'firstSources': samples,
+            'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
+          }
+          print(json.dumps(report, indent=2, ensure_ascii=False))
+          Path('/tmp/tmdb-embed-report.json').write_text(json.dumps(report, indent=2, ensure_ascii=False) + '\n')
+          PY
+          cat /tmp/tmdb-embed-report.json
+          echo "Probe exit code: $result"
+          exit "$result"
+
+      - name: Stop TMDB Embed API container
+        if: always()
+        run: |
+          docker stop tmdb-embed-probe 2>/dev/null || true

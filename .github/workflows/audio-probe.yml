@@ -1,0 +1,42 @@
+name: Alternative provider audio probe
+on:
+  push:
+    branches: [feat/nxsha-source]
+    paths:
+      - tests/audio-probe.mjs
+      - .github/workflows/audio-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  audio-probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Fetch fixed candidate revision
+        run: |
+          git clone https://github.com/x8rr/movies.git "$RUNNER_TEMP/movies-probe"
+          git -C "$RUNNER_TEMP/movies-probe" checkout bf57ffd029996b86cf86f7f16d919b4fb79e9bad
+      - name: Build isolated candidate image
+        run: docker build -t watch-audio-probe "$RUNNER_TEMP/movies-probe"
+      - name: Inspect HLS audio tracks without publishing a server
+        shell: bash
+        run: |
+          set +e
+          timeout 120s docker run --rm --memory=512m --cpus=1 \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/audio-probe.mjs",target=/app/probe.mjs,readonly \
+            --entrypoint bun watch-audio-probe /app/probe.mjs > /tmp/audio-report.json
+          result=$?
+          cat /tmp/audio-report.json
+          {
+            echo '## Alternative provider audio probe'
+            echo 'This inspects HLS metadata only. It does not verify full playback, Render access or content permissions.'
+            echo '```json'
+            cat /tmp/audio-report.json
+            echo '```'
+            echo "Probe exit code: $result"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"

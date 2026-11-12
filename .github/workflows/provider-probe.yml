@@ -1,0 +1,42 @@
+name: Alternative provider probe
+on:
+  push:
+    branches: [feat/nxsha-source]
+    paths:
+      - tests/provider-probe.mjs
+      - .github/workflows/provider-probe.yml
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  probe:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Fetch fixed candidate revision
+        run: |
+          git clone https://github.com/x8rr/movies.git "$RUNNER_TEMP/movies-probe"
+          git -C "$RUNNER_TEMP/movies-probe" checkout bf57ffd029996b86cf86f7f16d919b4fb79e9bad
+      - name: Build isolated candidate image
+        run: docker build -t watch-provider-probe "$RUNNER_TEMP/movies-probe"
+      - name: Test source reachability without publishing a server
+        shell: bash
+        run: |
+          set +e
+          timeout 90s docker run --rm --memory=512m --cpus=1 \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/provider-probe.mjs",target=/app/probe.mjs,readonly \
+            --entrypoint bun watch-provider-probe /app/probe.mjs > /tmp/provider-report.json
+          result=$?
+          cat /tmp/provider-report.json
+          {
+            echo '## Alternative provider reachability probe'
+            echo 'This does not verify playback, audio languages, Render access or content permissions.'
+            echo '```json'
+            cat /tmp/provider-report.json
+            echo '```'
+            echo "Probe exit code: $result"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
