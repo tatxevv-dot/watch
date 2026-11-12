@@ -32,7 +32,7 @@ jobs:
       - name: Wait for API health
         run: |
           for attempt in $(seq 1 60); do
-            if curl -fsS http://127.0.0.1:8787/ > /tmp/tmdb-embed-health.json; then
+            if curl -fsS http://127.0.0.1:8787/api/health > /tmp/tmdb-embed-health.json; then
               echo "TMDB Embed API is healthy"
               exit 0
             fi
@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          curl -fsS --max-time 180 'http://127.0.0.1:8787/api/v1/sources?tmdbId=68721&type=movie' > /tmp/tmdb-embed-sources.json
+          curl -fsS --max-time 180 'http://127.0.0.1:8787/api/streams/movie/68721' > /tmp/tmdb-embed-sources.json
           result=$?
           python3 - <<'PY'
           import json
@@ -55,7 +55,7 @@ jobs:
               data = json.loads(Path('/tmp/tmdb-embed-sources.json').read_text())
           except Exception:
               data = {}
-          sources = data.get('sources') or data.get('results') or []
+          sources = data.get('streams') or []
           audio = []
           russian = []
           for source in sources:
