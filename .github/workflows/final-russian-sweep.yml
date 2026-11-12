@@ -1,0 +1,38 @@
+name: Final Russian audio sweep
+on:
+  push:
+    branches: [feat/nxsha-source]
+    paths: [tests/final-russian-sweep.mjs, .github/workflows/final-russian-sweep.yml]
+permissions:
+  contents: read
+jobs:
+  final-russian-sweep:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+        with:
+          persist-credentials: false
+      - name: Build isolated decoder
+        run: |
+          git clone https://github.com/x8rr/movies.git "$RUNNER_TEMP/movies-probe"
+          git -C "$RUNNER_TEMP/movies-probe" checkout bf57ffd029996b86cf86f7f16d919b4fb79e9bad
+          printf '\nRUN apk add --no-cache ffmpeg\n' >> "$RUNNER_TEMP/movies-probe/Dockerfile"
+          docker build -t watch-final-russian-sweep "$RUNNER_TEMP/movies-probe"
+      - name: Decode audio and identify Russian metadata
+        shell: bash
+        run: |
+          set +e
+          timeout 900s docker run --rm --memory=768m --cpus=1 \
+            --mount type=bind,source="$GITHUB_WORKSPACE/tests/final-russian-sweep.mjs",target=/app/probe.mjs,readonly \
+            --entrypoint bun watch-final-russian-sweep /app/probe.mjs > /tmp/final-russian-sweep.json
+          result=$?
+          cat /tmp/final-russian-sweep.json
+          {
+            echo '## Final Russian audio sweep'
+            echo '```json'
+            cat /tmp/final-russian-sweep.json
+            echo '```'
+            echo "Exit code: $result"
+          } >> "$GITHUB_STEP_SUMMARY"
+          exit "$result"
