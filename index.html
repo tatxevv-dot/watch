@@ -412,6 +412,8 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 #umenu a:hover,#umenu button:hover{background:var(--bg2)}
 #umenu button{color:#e5645b}
 /* ---- watch player ---- */
+.cp-back{display:none;position:absolute;left:10px;top:calc(10px + env(safe-area-inset-top));z-index:7;height:32px;padding:0 12px;border:0;border-radius:16px;background:rgba(28,28,30,.85);color:#fff;font:600 13px system-ui}
+.cp.cp-native .cp-back{display:block}.cp.cp-native .cp-ui{display:none}
 .cp{position:relative;max-width:980px;margin:0 auto;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;color:#fff;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;contain:layout paint;transform:translateZ(0)}
 .cp-screen,.cp-screen>iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
 .cp.cp-fs{border-radius:0}
@@ -1030,13 +1032,14 @@ const VR_ORIGIN = "https://embed.vidrift.net", CP_COLOR = "#ffffff";
 const CP_LOGO = "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 32'><text x='0' y='25' font-family='Manrope,Arial,sans-serif' font-weight='800' font-size='26' letter-spacing='-1' fill='#fff'>watch.</text></svg>");
 const VR = {
   id: "vidrift", origin: VR_ORIGIN,
-  buildEmbedUrl({ tmdb_id, media_type, season, episode, autoplay = true }) {
+  buildEmbedUrl({ tmdb_id, media_type, season, episode, autoplay = true, nativeFs = false }) {
     const id = Number(tmdb_id); if (!(id > 0)) return null;
     let p;
     if (media_type === "tv") { const s = Number(season), e = Number(episode); if (!(s >= 0) || !(e > 0)) return null; p = `/embed/tv/${id}/${s}/${e}`; }
     else if (media_type === "movie") p = `/embed/movie/${id}`; else return null;
-    const q = new URLSearchParams({ brand: "watch", brandColor: CP_COLOR.slice(1), brandLogo: CP_LOGO, exit: "1", fs: "parent", mobileSheets: "true",
-      hide: "progress,play,volume,skip,time,server,episodes,subtitles,settings,cast,fullscreen" });
+    const q = new URLSearchParams({ brand: "watch", brandColor: CP_COLOR.slice(1), brandLogo: CP_LOGO, exit: "1", mobileSheets: "true",
+      hide: "progress,play,volume,skip,time,server,episodes,subtitles,settings,cast" + (nativeFs ? "" : ",fullscreen") });
+    if (!nativeFs) q.set("fs", "parent");   // iPhone: полноэкранный режим отдаём самому плееру → системный плеер iOS
     if (autoplay) q.set("autoplay", "1");
     return VR_ORIGIN + p + "?" + q.toString();
   },
@@ -1076,7 +1079,7 @@ const ic = k => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SVGI[k]}
 function CinemaPPlayer(box, ctx) {
   const prov = VR, my = {}; let iframe = null, st = null, alive = true, loadTimer = null, gotMsg = false, resumed = false, pollT = null, tickT = null, hideT = null, menu = null, fsWanted = false;
   const local = { t: 0, d: 0, paused: true, speed: 1, at: 0 }, saved = { pos: -99, at: 0 };
-  ctx.vr = true; ctx._ended = false;
+  ctx.vr = true; ctx._ended = false; ctx.nativeFs = !(document.documentElement.requestFullscreen || document.documentElement.webkitRequestFullscreen);   // iPhone Safari
   const url = prov.buildEmbedUrl(ctx);
   const bd = ctx.backdrop ? `--img:url(${ctx.backdrop})` : "";
   box.innerHTML = `<div class="cp" id="cpRoot"><div class="cp-screen" id="cpScr"><button class="cp-start" id="cpGo" aria-label="Смотреть" style="${bd}"><i>${ic("play")}</i></button></div><div class="cp-toast" id="cpToast" role="status"></div></div>
@@ -1107,6 +1110,7 @@ function CinemaPPlayer(box, ctx) {
       <div class="cp-row"><div class="cp-g"><button id="cpPlay" aria-label="Пауза/воспроизведение">${ic("play")}</button><button id="cpB" aria-label="Назад 10 секунд">${ic("b10")}</button><button id="cpF" aria-label="Вперёд 10 секунд">${ic("f10")}</button>
         <button id="cpMute" aria-label="Звук">${ic("vol")}</button><input type="range" id="cpVol" min="0" max="100" value="100" aria-label="Громкость"></div>
         <div class="cp-g"><button id="cpSet" class="txt" aria-label="Настройки">${ic("set")}</button><button id="cpCast" aria-label="Cast">${ic("cast")}</button><button id="cpPip" aria-label="Картинка в картинке">${ic("pip")}</button><button id="cpFs" aria-label="На весь экран">${ic("fs")}</button></div></div></div><div class="cp-menu" id="cpMenu" hidden></div></div>`);
+    root.insertAdjacentHTML("beforeend", `<button class="cp-back" id="cpBack">‹ watch</button>`); $("#cpBack", root).onclick = () => root.classList.remove("cp-native");
     ui = { el: $("#cpUi", root), seek: $("#cpSeek", root), cur: $("#cpCur", root), dur: $("#cpDur", root), play: $("#cpPlay", root), vol: $("#cpVol", root), mute: $("#cpMute", root), menu: $("#cpMenu", root) };
     const cmd = (t, p) => prov.send(iframe && iframe.contentWindow, t, p);
     ui.play.onclick = () => cmd(local.paused ? "vidrift:play" : "vidrift:pause");
@@ -1141,6 +1145,9 @@ function CinemaPPlayer(box, ctx) {
   const exitPseudo = () => { const was = root.classList.contains("cp-pseudo"); root.classList.remove("cp-pseudo", "cp-fs"); document.body.classList.remove("cp-lock"); if (was) window.scrollTo(0, my.y || 0); try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch {} };
   const toggleFs = () => {   // fs=parent: полный экран делаем на нашей обёртке, чтобы наши элементы остались поверх видео
     const d = document;
+    if (ctx.nativeFs) {   // iPhone: показываем родную панель VidRift, её кнопка «на весь экран» запускает системный плеер iOS
+      const on = root.classList.toggle("cp-native"); if (on) { closeMenu(); say("Нажмите ⛶ в плеере — откроется системный полноэкранный режим iPhone", 6000); } return;
+    }
     if (root.classList.contains("cp-pseudo")) return exitPseudo();
     if (d.fullscreenElement || d.webkitFullscreenElement) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); return; }
     const rq = root.requestFullscreen || root.webkitRequestFullscreen, pseudo = () => { my.y = window.scrollY; root.classList.add("cp-pseudo", "cp-fs"); document.body.classList.add("cp-lock"); try { screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape").catch(() => {}); } catch {} };
@@ -1206,7 +1213,7 @@ function CinemaPPlayer(box, ctx) {
       case "exit": save(true, true); if (document.fullscreenElement) document.exitFullscreen(); if (history.length > 1) history.back(); break;
       case "command-error": say("Плеер не выполнил команду" + (d.command ? " (" + String(d.command).slice(0, 40) + ")" : "") + (d.message ? ": " + String(d.message).slice(0, 80) : "")); break;
       case "mobile-panel": root.classList.toggle("cp-sheet", !!d.open); break;
-      case "fullscreen": if (d.fullscreen === true && !isFs()) toggleFs(); else if (d.fullscreen === false && isFs()) toggleFs(); break;
+      case "fullscreen": if (ctx.nativeFs) break; if (d.fullscreen === true && !isFs()) toggleFs(); else if (d.fullscreen === false && isFs()) toggleFs(); break;
     }
   };
   let started = false;
