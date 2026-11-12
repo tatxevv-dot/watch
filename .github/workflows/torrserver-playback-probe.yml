@@ -70,6 +70,13 @@ jobs:
             fi
             sleep 5
           done
+          sleep 15
+          curl -fsS --max-time 30 \
+            -X POST \
+            -H 'Content-Type: application/json' \
+            -d '{"action":"get","hash":"E25CAA54A3AECD8297F4E5DD6F941377AA7DCAC3"}' \
+            http://127.0.0.1:8090/torrents \
+            > /tmp/torrserver-status.json
           result=$?
           python3 - <<'PY'
           import json, re
@@ -97,6 +104,7 @@ jobs:
             'russianFiles': len(russian),
             'russianResults': russian[:20],
             'firstFiles': files[:10],
+            'fullResponse': data,
             'limitations': ['Metadata inspection only', 'Not full playback verification', 'Render access not verified', 'Content permissions not verified']
           }
           print(json.dumps(report, indent=2, ensure_ascii=False))
