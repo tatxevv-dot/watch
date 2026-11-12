@@ -46,7 +46,7 @@ jobs:
         shell: bash
         run: |
           set +e
-          curl -fsS --max-time 180 'http://127.0.0.1:3000/v1/movies/533535' > /tmp/cinepro-sources.json
+          curl -fsS --max-time 180 'http://127.0.0.1:3000/v1/movies/68721' > /tmp/cinepro-sources.json
           result=$?
           python3 - <<'PY'
           import json
@@ -72,7 +72,8 @@ jobs:
           report = {
             'candidate': 'cinepro-org/core',
             'testedFrom': 'GitHub Actions, not Render',
-            'tmdbId': 533535,
+            'tmdbId': 68721,
+            'movie': 'Iron Man 3',
             'sourcesFound': len(sources),
             'audioTracksFound': len(audio),
             'russianAudioTracks': len(russian),
