@@ -21,6 +21,7 @@
 <video id="player" controls autoplay playsinline></video>
 </div>
 <script>
+const BACKEND_URL='https://watch-nxsha.onrender.com';
 async function play(){
  const magnet=document.getElementById('magnet').value.trim();
  const token=document.getElementById('token').value.trim();
@@ -30,7 +31,7 @@ async function play(){
  if(!magnet||!token){status.textContent='Введите magnet и ADMIN_TOKEN.';status.classList.add('err');return;}
  status.textContent='Готовим торрент…';
  try{
-  const response=await fetch('/api/torrent/stream',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({magnet})});
+  const response=await fetch(BACKEND_URL+'/api/torrent/stream',{method:'POST',headers:{'Content-Type':'application/json',Authorization:'Bearer '+token},body:JSON.stringify({magnet})});
   const data=await response.json();
   if(!response.ok)throw new Error(data.error||'Не удалось получить поток');
   status.textContent='Поток готов. Запуск…';status.classList.add('ok');
