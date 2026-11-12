@@ -83,8 +83,11 @@ app.post('/api/torrent/stream', async c => {
       });
       const status = await statusResponse.json();
       if (status.stat_string === 'Torrent working') {
-        const streamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=1`;
-        return c.json({ streamUrl });
+        const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=1`;
+        const expiry = Math.floor(Date.now() / 1000) + 14400;
+        const base = new URL(c.req.url).origin;
+        const proxyUrl = signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry);
+        return c.json({ streamUrl: proxyUrl });
       }
       await new Promise(resolve => setTimeout(resolve, 5000));
     }
