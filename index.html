@@ -885,14 +885,14 @@ function torrentPlayer(root, m) {
       let st;
       for (let n = 1; n <= 6; n++) {
         over(n === 1 ? "Готовим видео…" : "Сервер видео просыпается…", n === 1 ? "Обычно 10–60 секунд" : "Это бывает до 5 минут · попытка " + n + " из 6");
-        st = await post("/api/torrent/stream", { magnet: s.d.magnet, sig: s.d.sig });
+        st = await post("/api/torrent/stream", { magnet: s.d.magnet, sig: s.d.sig, lang });
         if (st.r.status !== 503 && st.r.status !== 502) break;
         await new Promise(r => setTimeout(r, 4000));
       }
       if (st.r.status === 504) return over("Нет раздающих", "Попробуйте позже", true);
       if (st.r.status === 503 || st.r.status === 502) return over("Сервер видео ещё просыпается", "Нажмите «Повторить» через минуту", true);
       if (!st.r.ok || !st.d.streamUrl) throw new Error("stream " + st.r.status);
-      items[0].r.src = st.d.streamUrl;
+      items[0].r.src = st.d.streamUrl; items[0].r.live = true;
       initPlayer(root, items, { title_id: m.id, episode_id: null });
       go.click();
     } catch (e) { over("Не удалось запустить", "Сервер мог спать — повторите", true); }
@@ -953,7 +953,7 @@ function initPlayer(root, items, ctx) {
     if (s.r.kind === "video") {
       el = document.createElement("video"); el.playsInline = true; el.preload = "metadata"; scr.appendChild(el);
       const key = "pos:" + s.r.src; let last = 0, lastSave = 0, seeked = false, recovered = 0;
-      const target = startAt !== undefined ? startAt : (+ls.get(key) || 0);
+      const target = s.r.live ? 0 : (startAt !== undefined ? startAt : (+ls.get(key) || 0));
       const seek = () => {
         if (seeked || !(target > 3) || el.readyState < 1) return;
         seeked = true; if (!isFinite(el.duration) || target < el.duration - 8) el.currentTime = target;
@@ -992,6 +992,7 @@ function initPlayer(root, items, ctx) {
       el.addEventListener("pause", () => { if (!el.ended) saveProgress(ctx, st.pos, st.dur); });
       el.addEventListener("ended", () => { saveProgress(ctx, st.dur, st.dur); ls.set(key, 0); if (ctx.onNext) ctx.onNext(scr); });
       el.addEventListener("error", () => fail("media"));
+      if (s.r.live) { const w = setTimeout(() => { if (my === gen && el.readyState < 2) fail("timeout"); }, 100000); el.addEventListener("loadeddata", () => clearTimeout(w), { once: true }); }
       if (isHls(s.r.src) && window.Hls && Hls.isSupported()) {
         hl = new Hls();
         hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
