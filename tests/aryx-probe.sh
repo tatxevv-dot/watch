@@ -52,6 +52,6 @@ report = {
   'serverError': server_error,
   'limitations': ['HLS URL discovery only', 'Not audio or playback verification', 'Render access not verified', 'Content permissions not verified']
 }
-Path('/tmp/aryx-report.json').write_text(json.dumps(report, indent=2) + '\n')
+print(json.dumps(report, indent=2))
 PY
 exit 0

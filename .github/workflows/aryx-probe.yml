@@ -25,15 +25,7 @@ jobs:
             -e TMDB_API_KEY="${{ secrets.TMDB_API_KEY }}" \
             -e TMDB_BEARER_TOKEN="${{ secrets.TMDB_BEARER_TOKEN }}" \
             --mount type=bind,source="$GITHUB_WORKSPACE/tests/aryx-probe.sh",target=/app/probe.sh,readonly \
-            --entrypoint bash aryx-probe /app/probe.sh > /tmp/aryx-report.json
+            --entrypoint bash aryx-probe /app/probe.sh
           result=$?
-          cat /tmp/aryx-report.json
-          {
-            echo '## Aryx HLS extraction probe'
-            echo 'This checks server startup and HLS URL discovery only. It does not verify audio, full playback, Render access or content permissions.'
-            echo '```json'
-            cat /tmp/aryx-report.json
-            echo '```'
-            echo "Probe exit code: $result"
-          } >> "$GITHUB_STEP_SUMMARY"
+          echo "Probe exit code: $result"
           exit "$result"
