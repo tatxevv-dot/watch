@@ -14,19 +14,22 @@ for attempt in $(seq 1 45); do
   sleep 1
 done
 extract_status=0
-extract_body='{}'
 if [ "$ready" = true ]; then
-  extract_body=$(curl -fsS --max-time 120 'http://127.0.0.1:4000/api/v1/extract?tmdb_id=533535&type=movie' 2>/dev/null || echo '{}')
+  curl -fsS --max-time 120 'http://127.0.0.1:4000/api/v1/extract?tmdb_id=533535&type=movie' > /tmp/aryx-extract.json 2>/dev/null || true
   extract_status=$?
 fi
+printf '%s' "$extract_status" > /tmp/aryx-extract-status
 TMDB_API_KEY="${TMDB_API_KEY:-}" TMDB_BEARER_TOKEN="${TMDB_BEARER_TOKEN:-}" python3 - <<'PY'
 import json, os
 from pathlib import Path
 health = {}
 try: health = json.loads(Path('/tmp/aryx-health.json').read_text())
 except Exception: pass
+extract = {}
 try: extract = json.loads(Path('/tmp/aryx-extract.json').read_text())
-except Exception: extract = {}
+except Exception: pass
+try: extract_status = int(Path('/tmp/aryx-extract-status').read_text().strip())
+except Exception: extract_status = 1
 results = extract.get('results', {})
 found = []
 for provider, result in results.items():
