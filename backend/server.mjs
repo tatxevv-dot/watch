@@ -5,7 +5,7 @@ import { serve } from '@hono/node-server';
 import upstream from './index.js';
 import { extract } from './src/extractors/nxsha.js';
 import { encodeProxyUrl } from './src/proxy.js';
-const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN, TORRSERVER_URL } = process.env;
+const { ADMIN_TOKEN, SIGNING_SECRET, ALLOWED_ORIGIN, TORRSERVER_URL, JACKETT_URL, JACKETT_API_KEY } = process.env;
 if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 32 || !SIGNING_SECRET || SIGNING_SECRET.length < 32 || !ALLOWED_ORIGIN) throw new Error('Configure ADMIN_TOKEN, SIGNING_SECRET (32+ characters) and ALLOWED_ORIGIN');
 if (!TORRSERVER_URL) throw new Error('Configure TORRSERVER_URL');
 const app = new Hono();
@@ -56,6 +56,31 @@ app.post('/api/extract', async c => {
     return c.json({ servers });
   } catch { return c.json({ error: 'Nxsha extraction failed; inspect source availability' }, 502); }
   finally { extracting--; }
+});
+app.use('/api/torrent/search', bodyLimit({ maxSize: 2048 }));
+app.post('/api/torrent/search', async c => {
+  if (!equal(c.req.header('authorization') || '', 'Bearer ' + ADMIN_TOKEN)) return c.json({ error: 'Authentication required' }, 401);
+  if (!JACKETT_URL || !JACKETT_API_KEY) return c.json({ error: 'Torrent search is not configured' }, 503);
+  let title, year;
+  try {
+    const body = await c.req.json();
+    title = String(body.title || '').trim();
+    year = String(body.year || '').trim();
+    if (!title) throw new Error();
+  } catch { return c.json({ error: 'Expected a movie title' }, 400); }
+  try {
+    const query = [title, year].filter(Boolean).join(' ');
+    const url = `${JACKETT_URL.replace(/\/$/, '')}/api/v2.0/indexers/all/results?apikey=${encodeURIComponent(JACKETT_API_KEY)}&Query=${encodeURIComponent(query)}&Category=2000&Limit=25`;
+    const response = await fetch(url, { headers: { Accept: 'application/json' } });
+    if (!response.ok) throw new Error('Jackett search failed');
+    const data = await response.json();
+    const results = (data.Results || []).filter(r => r.MagnetUri || (r.Link && r.Link.startsWith('magnet:')));
+    results.sort((a, b) => (b.Seeders || 0) - (a.Seeders || 0));
+    const best = results[0];
+    if (!best) return c.json({ error: 'Source not found' }, 404);
+    const magnet = best.MagnetUri || best.Link;
+    return c.json({ magnet, name: best.Title || '', seeders: best.Seeders || 0, size: best.Size || 0 });
+  } catch { return c.json({ error: 'Torrent search failed' }, 502); }
 });
 app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
 app.post('/api/torrent/stream', async c => {
