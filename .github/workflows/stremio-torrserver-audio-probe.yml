@@ -21,11 +21,16 @@ jobs:
         with:
           persist-credentials: false
 
+      - name: Clone and build Stremio TorrServer addon
+        run: |
+          git clone --depth 1 https://github.com/notmalicik/stremio-addon-torrserver.git /tmp/stremio-addon
+          docker build -t stremio-addon-torrserver /tmp/stremio-addon
+
       - name: Start Stremio TorrServer addon
         run: |
           docker run --rm --memory=1024m --cpus=1 -p 127.0.0.1:7000:7000 \
             --name stremio-torrserver-probe \
-            ghcr.io/notmalicik/stremio-addon-torrserver:latest &
+            stremio-addon-torrserver &
           echo $! > /tmp/stremio-pid
 
       - name: Wait for addon
