@@ -411,48 +411,53 @@ body:has(.authpg) .topban,body:has(.authpg) header#gn,body:has(.authpg) footer{d
 #umenu a,#umenu button{display:block;width:100%;text-align:left;background:none;border:0;padding:9px 12px;border-radius:9px;font-size:14px;font-weight:500;color:var(--ink)}
 #umenu a:hover,#umenu button:hover{background:var(--bg2)}
 #umenu button{color:#e5645b}
-/* ---- CinemaPPlayer ---- */
-.cp{position:relative;max-width:980px;margin:0 auto;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;color:#fff;-webkit-tap-highlight-color:transparent}
+/* ---- watch player ---- */
+.cp{position:relative;max-width:980px;margin:0 auto;aspect-ratio:16/9;background:#000;border-radius:16px;overflow:hidden;color:#fff;-webkit-tap-highlight-color:transparent;-webkit-user-select:none;user-select:none;contain:layout paint;transform:translateZ(0)}
 .cp-screen,.cp-screen>iframe{position:absolute;inset:0;width:100%;height:100%;border:0;background:#000}
-.cp.cp-fs{border-radius:0;max-width:none;aspect-ratio:auto;width:100vw;height:100vh;height:100dvh}
-.cp.cp-pseudo{position:fixed;inset:0;z-index:999;max-width:none;aspect-ratio:auto;border-radius:0;height:100dvh}
-body.cp-lock{overflow:hidden}
-.cp-start{position:absolute;inset:0;width:100%;border:0;background:linear-gradient(rgba(0,0,0,.4),rgba(0,0,0,.4)),var(--img) center/cover #111;display:grid;place-items:center;cursor:pointer}
-.cp-start i{width:72px;height:72px;border-radius:50%;background:#ff3d57;display:grid;place-items:center;transition:transform .25s cubic-bezier(.34,1.56,.64,1)}
-.cp-start:hover i{transform:scale(1.08)}.cp-start svg{width:30px;height:30px;fill:#fff;margin-left:3px}
+.cp.cp-fs{border-radius:0}
+.cp.cp-pseudo{position:fixed;inset:0;z-index:2147483000;width:100vw;height:100vh;height:100dvh;max-width:none;aspect-ratio:auto;border-radius:0;contain:none;transform:none}
+body.cp-lock{overflow:hidden;position:fixed;width:100%}
+body.cp-lock #app>*,body.cp-lock main{animation:none!important;transform:none!important;filter:none!important}
+body.cp-lock .gn,body.cp-lock header{visibility:hidden}
+.cp-start{position:absolute;inset:0;width:100%;border:0;background:linear-gradient(rgba(0,0,0,.35),rgba(0,0,0,.35)),var(--img) center/cover #111;display:grid;place-items:center;cursor:pointer}
+.cp-start i{width:68px;height:68px;border-radius:50%;background:rgba(255,255,255,.94);display:grid;place-items:center;transition:transform .2s}
+.cp-start:hover i{transform:scale(1.07)}.cp-start svg{width:28px;height:28px;fill:#000;margin-left:3px}
 .cp-load{position:absolute;inset:0;display:grid;place-content:center;justify-items:center;gap:12px;font-size:14px;color:#ccc;pointer-events:none}
-.cp-load span{width:28px;height:28px;border-radius:50%;border:3px solid #444;border-top-color:#ff3d57;animation:cpspin 1s linear infinite}@keyframes cpspin{to{transform:rotate(360deg)}}
-.cp-ui{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .25s;display:flex;flex-direction:column;justify-content:space-between}
+.cp-load span{width:26px;height:26px;border-radius:50%;border:3px solid #444;border-top-color:#fff;animation:cpspin 1s linear infinite}@keyframes cpspin{to{transform:rotate(360deg)}}
+.cp-ui{position:absolute;inset:0;pointer-events:none;opacity:0;transition:opacity .2s;display:flex;flex-direction:column;justify-content:space-between}
 .cp-ui.on{opacity:1}.cp-ui.on>*{pointer-events:auto}.cp-ui .cp-top{pointer-events:none}
-.cp-top{display:flex;align-items:center;gap:12px;padding:calc(12px + env(safe-area-inset-top)) 16px 28px;background:linear-gradient(rgba(0,0,0,.7),transparent);font-weight:600;font-size:15px}
-.cp-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.9}
-.cp-bar{padding:28px 14px calc(10px + env(safe-area-inset-bottom));background:linear-gradient(transparent,rgba(0,0,0,.85))}
-.cp-prog{display:flex;align-items:center;gap:10px;font-size:12px;font-variant-numeric:tabular-nums}
+.cp-top{display:flex;align-items:center;gap:12px;padding:calc(10px + env(safe-area-inset-top)) calc(16px + env(safe-area-inset-right)) 24px calc(16px + env(safe-area-inset-left));background:linear-gradient(rgba(0,0,0,.6),transparent);font-weight:600;font-size:14px}
+.cp-top img{height:20px;width:auto;flex:none}.cp-top span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;opacity:.85;font-weight:500}
+.cp-bar{padding:24px calc(12px + env(safe-area-inset-right)) calc(8px + env(safe-area-inset-bottom)) calc(12px + env(safe-area-inset-left));background:linear-gradient(transparent,rgba(0,0,0,.8))}
+.cp-prog{display:flex;align-items:center;gap:10px;font-size:12px;font-variant-numeric:tabular-nums;color:#e5e5ea}
 .cp-prog input{flex:1;min-width:0}
-.cp-row{display:flex;justify-content:space-between;align-items:center;gap:6px;margin-top:4px}.cp-g{display:flex;align-items:center;gap:2px}
-.cp-ui button{width:44px;height:44px;border:0;background:none;color:#fff;border-radius:10px;display:grid;place-items:center;cursor:pointer}
-.cp-ui button:hover:not(:disabled){background:rgba(255,255,255,.16)}.cp-ui button:disabled{opacity:.35;cursor:not-allowed}
+.cp-row{display:flex;justify-content:space-between;align-items:center;gap:4px;margin-top:2px}.cp-g{display:flex;align-items:center;gap:0}
+.cp-ui button{width:42px;height:42px;border:0;background:none;color:#fff;border-radius:50%;display:grid;place-items:center;cursor:pointer;position:relative}
+.cp-ui button:hover:not(:disabled){background:rgba(255,255,255,.14)}.cp-ui button:disabled{opacity:.3;cursor:not-allowed}
 .cp-ui button svg{width:24px;height:24px;fill:currentColor}
-.cp-ui input[type=range]{-webkit-appearance:none;appearance:none;height:4px;border-radius:2px;background:rgba(255,255,255,.35);outline:none;accent-color:#ff3d57;touch-action:none}
-.cp-ui input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#ff3d57}
-.cp-ui input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#ff3d57}
-#cpVol{width:80px;margin-left:4px}
-.cp-menu{position:absolute;right:12px;bottom:calc(96px + env(safe-area-inset-bottom));width:min(300px,calc(100% - 24px));max-height:60%;overflow-y:auto;overscroll-behavior:contain;background:rgba(24,24,27,.97);border-radius:14px;padding:6px;box-shadow:0 8px 30px rgba(0,0,0,.5)}
+.cp-ui #cpB svg,.cp-ui #cpF svg{width:26px;height:26px}
+.cp-ui #cpB::after,.cp-ui #cpF::after{content:"10";position:absolute;font:700 8px/1 system-ui,sans-serif;top:50%;left:50%;transform:translate(-50%,-38%)}
+.cp-ui input[type=range]{-webkit-appearance:none;appearance:none;height:16px;background:linear-gradient(rgba(255,255,255,.3),rgba(255,255,255,.3)) center/100% 4px no-repeat;outline:none;border-radius:0;touch-action:none;margin:0}
+.cp-ui input[type=range]::-webkit-slider-thumb{-webkit-appearance:none;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 0 0 3px rgba(0,0,0,.25)}
+.cp-ui input[type=range]::-moz-range-thumb{width:14px;height:14px;border:0;border-radius:50%;background:#fff}
+#cpVol{width:72px;margin-left:2px;flex:none}
+.cp-menu{position:absolute;right:calc(10px + env(safe-area-inset-right));bottom:calc(92px + env(safe-area-inset-bottom));width:min(290px,calc(100% - 20px));max-height:calc(100% - 140px);overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;background:rgba(28,28,30,.97);border-radius:14px;padding:6px}
 .cp-menu[hidden]{display:none}
-.cp-ui .cp-menu .cp-mi{width:100%;height:auto;min-height:44px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:10px 12px;text-align:left;font-size:14px;border-radius:9px;color:#f5f5f7}
-.cp-mi em{font-style:normal;color:#a1a1a6;font-size:13px}.cp-mi.on{background:rgba(255,61,87,.22)}.cp-mi.back{font-weight:700}.cp-mi.dis{color:#8e8e93}
-div.cp-mi{display:flex}.cp-step{display:flex;align-items:center;gap:6px}.cp-ui .cp-step button{width:34px;height:34px;background:rgba(255,255,255,.12)}
-.cp-over{position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.78);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
-.cp-over b{font-size:18px}.cp-over span{color:#bbb;font-size:14px}.cp-over .btn{margin:0 4px}
-.cp-toast{position:absolute;left:50%;top:14px;transform:translate(-50%,-8px);z-index:6;max-width:90%;background:rgba(24,24,27,.95);color:#fff;font-size:13px;padding:8px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:.25s}.cp-toast.on{opacity:1;transform:translate(-50%,0)}
+.cp-ui .cp-menu .cp-mi{width:100%;height:auto;min-height:42px;display:flex;justify-content:space-between;align-items:center;gap:12px;padding:9px 12px;text-align:left;font-size:14px;border-radius:9px;color:#f5f5f7}
+.cp-mi em{font-style:normal;color:#a1a1a6;font-size:13px}.cp-mi.on{background:rgba(255,255,255,.16)}.cp-mi.back{font-weight:700}.cp-mi.dis{color:#8e8e93}
+div.cp-mi{display:flex}.cp-step{display:flex;align-items:center;gap:6px}.cp-ui .cp-step button{width:32px;height:32px;background:rgba(255,255,255,.12)}
+.cp-over{position:absolute;inset:0;z-index:5;background:rgba(0,0,0,.8);display:flex;flex-direction:column;align-items:center;justify-content:center;gap:14px;text-align:center;padding:20px}
+.cp-over b{font-size:17px}.cp-over span{color:#bbb;font-size:14px}.cp-over .btn{margin:0 4px}
+.cp-toast{position:absolute;left:50%;top:12px;transform:translate(-50%,-8px);z-index:6;max-width:90%;background:rgba(28,28,30,.95);color:#fff;font-size:13px;padding:8px 14px;border-radius:10px;opacity:0;pointer-events:none;transition:.2s}.cp-toast.on{opacity:1;transform:translate(-50%,0)}
 .cp-meta{max-width:980px;margin:12px auto 0;display:flex;align-items:center;gap:12px;flex-wrap:wrap}
-.cp-badge{font-size:13px;font-weight:600;padding:4px 10px;border-radius:8px;background:var(--bg2)}.cp-badge[data-s="1"]{background:#ff3d57;color:#fff}.cp-badge[data-s="2"]{background:#1f9d55;color:#fff}
+.cp-badge{font-size:13px;font-weight:600;padding:4px 10px;border-radius:8px;background:var(--bg2);color:var(--ink)}.cp-badge[data-s="1"]{background:var(--ink);color:var(--bg)}.cp-badge[data-s="2"]{background:#1f9d55;color:#fff}
 .cp-nx{margin-left:auto}
-.cp-nextcard{display:flex;gap:14px;align-items:center;background:var(--bg2);border-radius:14px;padding:12px;margin:16px 0;max-width:980px}.cp-nextcard img{width:160px;aspect-ratio:16/9;object-fit:cover;border-radius:10px}
+.cp-nextcard{display:flex;gap:14px;align-items:center;background:var(--bg2);border-radius:14px;padding:12px;margin:16px 0;max-width:980px}
 .cp-nextcard small{color:var(--mute);display:block}.cp-nextcard b{display:block;margin:2px 0 8px}
-.ep.seen img{opacity:.55}.ep-seen{color:#1f9d55;font-size:12px;font-weight:600;margin-left:8px}.ep-part{color:#ff3d57;font-size:12px;font-weight:600;margin-left:8px}
+.ep.seen img{opacity:.55}.ep-seen{color:#1f9d55;font-size:12px;font-weight:600;margin-left:8px}.ep-part{color:var(--mute);font-size:12px;font-weight:600;margin-left:8px}
 .cp-cont{margin:8px 0 14px}
-@media(max-width:640px){#cpVol{display:none}.cp-ui button{width:40px;height:40px}.cp-nextcard img{width:110px}.cp-menu{bottom:calc(88px + env(safe-area-inset-bottom))}}
+@media(max-width:640px){#cpVol{display:none}.cp-ui button{width:40px;height:40px}.cp-menu{bottom:calc(86px + env(safe-area-inset-bottom))}}
+@media(max-height:480px){.cp-top{display:none}.cp-menu{bottom:70px}}
 </style>
 <link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;500;600;700;800&display=swap&subset=cyrillic"><link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/plyr@3.7.8/dist/plyr.css">
 </head>
@@ -1021,8 +1026,8 @@ function initPlayer(root, items, ctx) {
    Адаптеры: VidRift (основной, iframe + postMessage) и NexStream/ручные источники (резерв, старый initPlayer).
    ВНИМАНИЕ: имена команд/событий взяты из ТЗ; формы payload (поля сообщений) собраны в одном месте — VR.send()/VR.norm() —
    и должны быть сверены с https://vidrift.net/docs/ (во время разработки страница была недоступна). */
-const VR_ORIGIN = "https://embed.vidrift.net", CP_COLOR = "#ff3d57";
-const CP_LOGO = "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 160 40'><rect width='40' height='40' rx='10' fill='#ff3d57'/><path d='M16 11v18l15-9z' fill='#fff'/><text x='48' y='28' font-family='Arial' font-weight='800' font-size='22' fill='#fff'>CinemaP</text></svg>");
+const VR_ORIGIN = "https://embed.vidrift.net", CP_COLOR = "#ffffff";
+const CP_LOGO = "data:image/svg+xml," + encodeURIComponent("<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 90 32'><text x='0' y='25' font-family='Manrope,Arial,sans-serif' font-weight='800' font-size='26' letter-spacing='-1' fill='#fff'>watch.</text></svg>");
 const VR = {
   id: "vidrift", origin: VR_ORIGIN,
   buildEmbedUrl({ tmdb_id, media_type, season, episode, autoplay = true }) {
@@ -1030,7 +1035,7 @@ const VR = {
     let p;
     if (media_type === "tv") { const s = Number(season), e = Number(episode); if (!(s >= 0) || !(e > 0)) return null; p = `/embed/tv/${id}/${s}/${e}`; }
     else if (media_type === "movie") p = `/embed/movie/${id}`; else return null;
-    const q = new URLSearchParams({ brand: "CinemaP", brandColor: CP_COLOR.slice(1), brandLogo: CP_LOGO, exit: "1", fs: "parent", mobileSheets: "true",
+    const q = new URLSearchParams({ brand: "watch", brandColor: CP_COLOR.slice(1), brandLogo: CP_LOGO, exit: "1", fs: "parent", mobileSheets: "true",
       hide: "progress,play,volume,skip,time,server,episodes,subtitles,settings,cast,fullscreen" });
     if (autoplay) q.set("autoplay", "1");
     return VR_ORIGIN + p + "?" + q.toString();
@@ -1058,9 +1063,12 @@ const VR = {
 const PROVIDERS = { vidrift: VR };
 
 const fmtClock = x => isFinite(x) && x >= 0 ? fmtT(x) : "0:00";
-const SVGI = { play: "M8 5v14l11-7z", pause: "M6 5h4v14H6zM14 5h4v14h-4z", b10: "M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z", f10: "M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z",
-  set: "M19.4 13a7.5 7.5 0 0 0 0-2l2-1.6-2-3.4-2.4 1a7 7 0 0 0-1.7-1L15 3h-4l-.4 2.6a7 7 0 0 0-1.7 1l-2.4-1-2 3.400 2 1.600a7.500 7.500 0 0 0 0 2l-2 1.600 2 3.400 2.400-1a7 7 0 0 0 1.700 1L11 21h4l.4-2.600a7 7 0 0 0 1.700-1l2.400 1 2-3.400zM13 15a3 3 0 1 1 0-6 3 3 0 0 1 0 6z",
-  fs: "M4 9V4h5v2H6v3zm10-5h5v5h-2V6h-3zM6 15v3h3v2H4v-5zm13 0v5h-5v-2h3v-3z", pip: "M19 7H5v10h14zM3 5h18v14H3zm9 6h7v5h-7z", cast: "M3 18v3h3a3 3 0 0 0-3-3zm0-4v2a7 7 0 0 1 7 7h2a9 9 0 0 0-9-9zm0-4v2a11 11 0 0 1 11 11h2A13 13 0 0 0 3 10zm18-5H3v3h2V7h14v10h-5v2h7z", vol: "M3 9v6h4l5 5V4L7 9zm13.500 3A4.500 4.500 0 0 0 14 8v8a4.500 4.500 0 0 0 2.500-4z", mute: "M3 9v6h4l5 5V4L7 9zm13 .6L17.400 8 19.500 10 21.600 8 23 9.600 20.900 11.700 23 13.800 21.600 15.200 19.500 13.100 17.400 15.200 16 13.800 18.100 11.700z" };
+const SVGI = { play: "M8 5v14l11-7z", pause: "M6 19h4V5H6zm8-14v14h4V5z", b10: "M12 5V1L7 6l5 5V7a6 6 0 1 1-6 6H4a8 8 0 1 0 8-8z", f10: "M12 5V1l5 5-5 5V7a6 6 0 1 0 6 6h2a8 8 0 1 1-8-8z",
+  set: "M19.14 12.94c.04-.3.06-.61.06-.94s-.02-.64-.07-.94l2.03-1.58a.5.5 0 0 0 .12-.61l-1.92-3.32a.49.49 0 0 0-.59-.22l-2.39.96c-.5-.38-1.03-.7-1.62-.94l-.36-2.54a.48.48 0 0 0-.48-.41h-3.84c-.24 0-.43.17-.47.41l-.36 2.54c-.59.24-1.13.57-1.62.94l-2.39-.96a.48.48 0 0 0-.59.22L2.74 8.87a.48.48 0 0 0 .12.61l2.03 1.58c-.05.3-.09.63-.09.94s.02.64.07.94l-2.03 1.58a.5.5 0 0 0-.12.61l1.92 3.32c.12.22.37.29.59.22l2.39-.96c.5.38 1.03.7 1.62.94l.36 2.54c.05.24.24.41.48.41h3.84c.24 0 .44-.17.47-.41l.36-2.54c.59-.24 1.13-.56 1.62-.94l2.39.96c.22.08.47 0 .59-.22l1.92-3.32a.48.48 0 0 0-.12-.61zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z",
+  fs: "M7 14H5v5h5v-2H7zm-2-4h2V7h3V5H5zm12 7h-3v2h5v-5h-2zM14 5v2h3v3h2V5z", pip: "M19 11h-8v6h8zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18z",
+  cast: "M1 18v3h3c0-1.66-1.34-3-3-3zm0-4v2c2.76 0 5 2.24 5 5h2c0-3.87-3.13-7-7-7zm0-4v2c4.97 0 9 4.03 9 9h2c0-6.08-4.93-11-11-11zm20-7H3c-1.1 0-2 .9-2 2v3h2V5h18v14h-7v2h7c1.1 0 2-.9 2-2V5c0-1.1-.9-2-2-2z",
+  vol: "M3 9v6h4l5 5V4L7 9zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z",
+  mute: "M16.5 12c0-1.77-1.02-3.29-2.5-4.03v2.21l2.45 2.45c.03-.2.05-.41.05-.63zm2.5 0c0 .94-.2 1.82-.54 2.64l1.51 1.51A8.8 8.8 0 0 0 21 12c0-4.28-2.99-7.86-7-8.77v2.06c2.89.86 5 3.54 5 6.71zM4.27 3 3 4.27 7.73 9H3v6h4l5 5v-6.73l4.25 4.25c-.67.52-1.42.93-2.25 1.18v2.06a9 9 0 0 0 3.69-1.81L19.73 21 21 19.73l-9-9zM12 4 9.91 6.09 12 8.18z" };
 const ic = k => `<svg viewBox="0 0 24 24" aria-hidden="true"><path d="${SVGI[k]}"/></svg>`;
 
 /* ctx: { title_id, episode_id, tmdb_id, media_type, season, episode, resume, backdrop, name,
@@ -1094,7 +1102,7 @@ function CinemaPPlayer(box, ctx) {
   /* ---- UI управления ---- */
   let ui = null;
   const buildUI = () => {
-    root.insertAdjacentHTML("beforeend", `<div class="cp-ui" id="cpUi"><div class="cp-top"><img src="${CP_LOGO}" alt="CinemaP" height="22"><span>${esc(ctx.name || "")}</span></div>
+    root.insertAdjacentHTML("beforeend", `<div class="cp-ui" id="cpUi"><div class="cp-top"><img src="${CP_LOGO}" alt="watch" height="22"><span>${esc(ctx.name || "")}</span></div>
       <div class="cp-bar"><div class="cp-prog"><span id="cpCur">0:00</span><input type="range" id="cpSeek" min="0" max="1000" value="0" aria-label="Перемотка"><span id="cpDur">0:00</span></div>
       <div class="cp-row"><div class="cp-g"><button id="cpPlay" aria-label="Пауза/воспроизведение">${ic("play")}</button><button id="cpB" aria-label="Назад 10 секунд">${ic("b10")}</button><button id="cpF" aria-label="Вперёд 10 секунд">${ic("f10")}</button>
         <button id="cpMute" aria-label="Звук">${ic("vol")}</button><input type="range" id="cpVol" min="0" max="100" value="100" aria-label="Громкость"></div>
@@ -1112,26 +1120,32 @@ function CinemaPPlayer(box, ctx) {
     $("#cpCast", root).onclick = () => cmd("vidrift:cast");
     const pip = $("#cpPip", root); pip.onclick = () => cmd("vidrift:set", { key: "pip", value: true });
     $("#cpFs", root).onclick = toggleFs;
-    root.addEventListener("pointermove", showUi); root.addEventListener("click", e => { if (!e.target.closest(".cp-ui")) showUi(); });
+    let lm = 0; root.addEventListener("pointermove", () => { const n = Date.now(); if (n - lm > 600) { lm = n; showUi(); } }, { passive: true }); root.addEventListener("click", e => { if (!e.target.closest(".cp-ui")) showUi(); });
     document.addEventListener("click", docClick);
-    tickT = setInterval(draw, 250); pollT = setInterval(() => { if (!document.hidden) cmd("vidrift:get-state"); }, 3000);
+    tickT = setInterval(draw, 500); pollT = setInterval(() => { if (!document.hidden && ui && ui.el.classList.contains("on")) cmd("vidrift:get-state"); }, 5000);
     cmd("vidrift:get-state");
   };
   const docClick = e => { if (menu && !e.target.closest(".cp-menu") && !e.target.closest("#cpSet")) closeMenu(); };
-  const showUi = () => { if (!ui) return; ui.el.classList.add("on"); clearTimeout(hideT); hideT = setTimeout(() => { if (!menu && !local.paused) ui.el.classList.remove("on"); }, 3500); };
+  const showUi = () => { if (!ui) return; if (!ui.el.classList.contains("on")) { ui.el.classList.add("on"); draw(); } clearTimeout(hideT); hideT = setTimeout(() => { if (!menu && !local.paused) ui.el.classList.remove("on"); }, 3500); };
+  const dc = {};   // кэш последних значений: DOM трогаем только при изменении
+  const setT = (el, k, v) => { if (dc[k] !== v) { dc[k] = v; el.textContent = v; } };
+  const setH = (el, k, v) => { if (dc[k] !== v) { dc[k] = v; el.innerHTML = v; } };
   const draw = () => {
-    if (!ui) return; const p = nowPos();
-    if (!my.seeking()) { ui.seek.value = local.d > 0 ? Math.round(p / local.d * 1000) : 0; ui.cur.textContent = fmtClock(p); }
-    ui.dur.textContent = fmtClock(local.d); ui.play.innerHTML = ic(local.paused ? "play" : "pause");
-    if (st) { const caps = prov.getCapabilities(st); $("#cpPip", root).disabled = !caps.pip; $("#cpPip", root).title = caps.pip ? "" : "Недоступно для этого источника";
-      $("#cpCast", root).disabled = !caps.cast; ui.vol.value = Math.round((st.volume ?? 1) * 100); ui.mute.innerHTML = ic(st.volume === 0 ? "mute" : "vol"); }
+    if (!ui || document.hidden || !ui.el.classList.contains("on")) return; const p = nowPos();
+    if (!my.seeking()) { const v = local.d > 0 ? Math.round(p / local.d * 1000) : 0; if (dc.seek !== v) { dc.seek = v; ui.seek.value = v; } setT(ui.cur, "cur", fmtClock(p)); }
+    setT(ui.dur, "dur", fmtClock(local.d)); setH(ui.play, "play", ic(local.paused ? "play" : "pause"));
+    if (st) { const caps = prov.getCapabilities(st), pip = $("#cpPip", root), cs = $("#cpCast", root); if (pip.disabled === caps.pip) { pip.disabled = !caps.pip; pip.title = caps.pip ? "" : "Недоступно для этого источника"; } if (cs.disabled === !caps.cast) cs.disabled = !caps.cast;
+      const vv = Math.round((st.volume ?? 1) * 100); if (dc.vol !== vv) { dc.vol = vv; ui.vol.value = vv; } setH(ui.mute, "mute", ic(st.volume === 0 ? "mute" : "vol")); }
   };
-  const toggleFs = () => {   // fs=parent: полноэкранный режим — на нашей обёртке, чтобы наши элементы остались видны
-    const d = document, el = root;
+  const isFs = () => !!(document.fullscreenElement || document.webkitFullscreenElement) || root.classList.contains("cp-pseudo");
+  const exitPseudo = () => { const was = root.classList.contains("cp-pseudo"); root.classList.remove("cp-pseudo", "cp-fs"); document.body.classList.remove("cp-lock"); if (was) window.scrollTo(0, my.y || 0); try { screen.orientation && screen.orientation.unlock && screen.orientation.unlock(); } catch {} };
+  const toggleFs = () => {   // fs=parent: полный экран делаем на нашей обёртке, чтобы наши элементы остались поверх видео
+    const d = document;
+    if (root.classList.contains("cp-pseudo")) return exitPseudo();
     if (d.fullscreenElement || d.webkitFullscreenElement) { (d.exitFullscreen || d.webkitExitFullscreen).call(d); return; }
-    const rq = el.requestFullscreen || el.webkitRequestFullscreen;
-    if (rq) { try { const r = rq.call(el); if (r && r.catch) r.catch(() => say("Полноэкранный режим недоступен")); } catch { say("Полноэкранный режим недоступен"); } }
-    else { root.classList.toggle("cp-pseudo"); document.body.classList.toggle("cp-lock", root.classList.contains("cp-pseudo")); /* iPhone: системный fullscreen для iframe недоступен, поверх него наши меню показать нельзя */ }
+    const rq = root.requestFullscreen || root.webkitRequestFullscreen, pseudo = () => { my.y = window.scrollY; root.classList.add("cp-pseudo", "cp-fs"); document.body.classList.add("cp-lock"); try { screen.orientation && screen.orientation.lock && screen.orientation.lock("landscape").catch(() => {}); } catch {} };
+    if (!rq) return pseudo();   // iPhone Safari: Fullscreen API для iframe/div нет → полноэкранный режим внутри страницы
+    try { const r = rq.call(root); if (r && r.catch) r.catch(pseudo); } catch { pseudo(); }
   };
   const onFsChange = () => root.classList.toggle("cp-fs", document.fullscreenElement === root || document.webkitFullscreenElement === root);
   document.addEventListener("fullscreenchange", onFsChange); document.addEventListener("webkitfullscreenchange", onFsChange);
@@ -1179,7 +1193,7 @@ function CinemaPPlayer(box, ctx) {
       case "progress": { upd(num(d.currentTime) ?? num(d.time) ?? num(d.position), num(d.duration), false); if (!started) { started = true; touchHistory(ctx); } if (!resumed) doResume(); save(false); break; }
       case "paused": upd(num(d.currentTime), num(d.duration), true); save(true); break;
       case "unpaused": upd(num(d.currentTime), num(d.duration), false); ctx._ended = false; break;
-      case "ui-visible": if (ui) ui.el.classList.add("on"); break;
+      case "ui-visible": showUi(); break;
       case "ui-hidden": if (ui && !menu) ui.el.classList.remove("on"); break;
       case "episode": { const s = num(d.season), e = num(d.episode); save(true); if (s !== null && e !== null && (s !== ctx.season || e !== ctx.episode) && ctx.goEpisode) ctx.goEpisode(s, e); break; }
       case "nextup": if (ctx.next) say("Дальше: " + ctx.next.label, 8000); break;
@@ -1192,7 +1206,7 @@ function CinemaPPlayer(box, ctx) {
       case "exit": save(true, true); if (document.fullscreenElement) document.exitFullscreen(); if (history.length > 1) history.back(); break;
       case "command-error": say("Плеер не выполнил команду" + (d.command ? " (" + String(d.command).slice(0, 40) + ")" : "") + (d.message ? ": " + String(d.message).slice(0, 80) : "")); break;
       case "mobile-panel": root.classList.toggle("cp-sheet", !!d.open); break;
-      case "fullscreen": if (d.fullscreen === true && !document.fullscreenElement) toggleFs(); else if (d.fullscreen === false && document.fullscreenElement) document.exitFullscreen(); break;
+      case "fullscreen": if (d.fullscreen === true && !isFs()) toggleFs(); else if (d.fullscreen === false && isFs()) toggleFs(); break;
     }
   };
   let started = false;
@@ -1208,7 +1222,7 @@ function CinemaPPlayer(box, ctx) {
     if (!navigator.onLine) return fail("Нет подключения к интернету");
     ctx.startAt = startAt > 3 ? startAt : 0; gotMsg = false; resumed = false; started = false; closeMenu(); if (ui) { ui.el.remove(); ui = null; clearInterval(tickT); clearInterval(pollT); }
     scr.innerHTML = `<div class="cp-load"><span></span>Загрузка плеера…</div>`; iframe = document.createElement("iframe");
-    iframe.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; iframe.allowFullscreen = true; iframe.referrerPolicy = "strict-origin-when-cross-origin"; iframe.title = ctx.name || "CinemaP";
+    iframe.allow = "autoplay; fullscreen; picture-in-picture; encrypted-media"; iframe.allowFullscreen = true; iframe.referrerPolicy = "strict-origin-when-cross-origin"; iframe.title = ctx.name || "watch";
     iframe.addEventListener("load", () => { if (!alive) return; scr.querySelector(".cp-load")?.remove(); buildUI(); showUi(); });
     iframe.addEventListener("error", () => fail("Не удалось загрузить плеер VidRift"));
     iframe.src = url; scr.appendChild(iframe);
@@ -1230,9 +1244,9 @@ function CinemaPPlayer(box, ctx) {
     if (!alive) return; flush(); alive = false; clearTimeout(loadTimer); clearInterval(tickT); clearInterval(pollT); clearTimeout(hideT); clearTimeout(tt); clearInterval(my.iv);
     window.removeEventListener("message", onMsg); window.removeEventListener("pagehide", flush); window.removeEventListener("offline", lost); window.removeEventListener("online", back);
     document.removeEventListener("visibilitychange", vis); document.removeEventListener("click", docClick); document.removeEventListener("fullscreenchange", onFsChange); document.removeEventListener("webkitfullscreenchange", onFsChange);
-    document.body.classList.remove("cp-lock"); if (iframe) { iframe.src = "about:blank"; iframe.remove(); iframe = null; }
+    exitPseudo(); if (iframe) { iframe.src = "about:blank"; iframe.remove(); iframe = null; }
   };
-  window.addEventListener("hashchange", destroy, { once: true });
+  window.addEventListener("hashchange", () => { exitPseudo(); destroy(); }, { once: true });
   return { destroy, el: root };
 }
 
