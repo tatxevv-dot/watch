@@ -8,7 +8,7 @@ permissions:
 jobs:
   aryx-audio-probe:
     runs-on: ubuntu-24.04
-    timeout-minutes: 15
+    timeout-minutes: 20
     steps:
       - uses: actions/checkout@v5
         with:
@@ -17,7 +17,18 @@ jobs:
         run: git clone https://github.com/AryxK6/aryx-m3u8-scraper.git "$RUNNER_TEMP/aryx-probe"
       - name: Build isolated candidate image with FFmpeg
         run: |
-          printf '\nRUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*\n' >> "$RUNNER_TEMP/aryx-probe/Dockerfile"
+          python3 - <<'PY'
+from pathlib import Path
+path = Path('$RUNNER_TEMP/aryx-probe/Dockerfile')
+text = path.read_text()
+marker = '# Switch to non-root user\nUSER aryx\n'
+insert = 'RUN apt-get update && apt-get install -y --no-install-recommends ffmpeg && rm -rf /var/lib/apt/lists/*\n\n'
+if 'apt-get install -y --no-install-recommends ffmpeg' not in text:
+    if marker not in text:
+        raise SystemExit('Expected USER aryx marker not found')
+    text = text.replace(marker, insert + marker)
+    path.write_text(text)
+PY
           docker build -t aryx-audio-probe "$RUNNER_TEMP/aryx-probe"
       - name: Extract HLS and inspect audio languages
         shell: bash
