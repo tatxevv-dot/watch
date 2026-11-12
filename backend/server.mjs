@@ -116,33 +116,43 @@ app.post('/api/torrent/stream', async c => {
     magnet = String(body.magnet || '');
     if (!magnet.startsWith('magnet:?xt=urn:btih:')) throw new Error();
   } catch { return c.json({ error: 'Expected a magnet link' }, 400); }
+  const ts = (path, body, ms = 20000) => fetch(`${TORRSERVER_URL}${path}`, { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body), signal: AbortSignal.timeout(ms) });
+  const sleep = ms => new Promise(r => setTimeout(r, ms));
   try {
-    const addResponse = await fetch(`${TORRSERVER_URL}/torrents`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ action: 'add', link: magnet, title: 'Torrent', save_to_db: false })
-    });
-    if (!addResponse.ok) throw new Error('TorrServer add failed');
     const hash = new URL(magnet).searchParams.get('xt')?.replace('urn:btih:', '');
     if (!hash) throw new Error('Invalid magnet hash');
-    for (let attempt = 0; attempt < 60; attempt++) {
-      const statusResponse = await fetch(`${TORRSERVER_URL}/torrents`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'get', hash })
-      });
-      const status = await statusResponse.json();
-      if (status.stat_string === 'Torrent working') {
-        const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=1`;
-        const expiry = Math.floor(Date.now() / 1000) + 14400;
-        const base = new URL(c.req.url).origin;
-        const proxyUrl = signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry);
-        return c.json({ streamUrl: proxyUrl });
-      }
-      await new Promise(resolve => setTimeout(resolve, 5000));
+    const started = Date.now();
+    // wake up TorrServer (free Render sleeps) and add the torrent
+    let added = false, lastErr = '';
+    while (!added && Date.now() - started < 70000) {
+      try {
+        const r = await ts('/torrents', { action: 'add', link: magnet, title: 'Torrent', save_to_db: false }, 25000);
+        if (r.ok) added = true; else lastErr = 'add HTTP ' + r.status;
+      } catch (e) { lastErr = 'add ' + (e?.message || e); }
+      if (!added) await sleep(3000);
     }
-    throw new Error('TorrServer did not become ready');
-  } catch { return c.json({ error: 'TorrServer stream failed' }, 502); }
+    if (!added) { console.error('TorrServer unavailable:', lastErr); return c.json({ error: 'TorrServer is waking up, retry in a minute' }, 503); }
+    while (Date.now() - started < 85000) {
+      try {
+        const r = await ts('/torrents', { action: 'get', hash }, 10000);
+        if (r.ok) {
+          const st = await r.json();
+          if (st.stat_string === 'Torrent working' || (st.file_stats && st.file_stats.length)) {
+            const files = (st.file_stats || []).filter(f => /\.(mp4|m4v|webm|mkv|avi|mov)$/i.test(f.path || ''));
+            const main = files.sort((x, y) => (y.length || 0) - (x.length || 0))[0] || st.file_stats?.[0];
+            const index = main?.id || 1;
+            const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
+            const expiry = Math.floor(Date.now() / 1000) + 14400;
+            const base = new URL(c.req.url).origin;
+            return c.json({ streamUrl: signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry) });
+          }
+        } else console.error('TorrServer get HTTP', r.status);
+      } catch (e) { console.error('TorrServer get error:', e?.message || e); }
+      await sleep(3000);
+    }
+    console.error('TorrServer: no peers/metadata in time');
+    return c.json({ error: 'No peers yet, try again or another title' }, 504);
+  } catch (e) { console.error('stream failed:', e?.message || e); return c.json({ error: 'TorrServer stream failed' }, 502); }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
