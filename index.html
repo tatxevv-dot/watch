@@ -986,40 +986,6 @@ async function nexstreamEmbed(payload) {
   if (!data || !data.url) throw new Error((data && data.error) || "NexStream не вернул ссылку.");
   return data.url;
 }
-/* ===== Провайдеры видео (модульно) =====
-   MoviesNexus — шаблоны взяты из официальной документации https://www.moviesnexus.fun/ :
-   фильм  /movie/:tmdbId ; сериал /tv/:tmdbId/:season/:episode ; параметры autoNext, sv (в т.ч. multiaudio).
-   autoNext=0: переключением серий управляет Watch, а не плеер. */
-const MOVIESNEXUS = { enabled: true, title: "MoviesNexus",
-  movieUrl: "https://www.moviesnexus.fun/movie/{tmdb}",
-  tvUrl: "https://www.moviesnexus.fun/tv/{tmdb}/{season}/{episode}?autoNext=0" };
-function moviesNexusUrl(p, sv) {
-  const tpl = p.type === "tv" ? MOVIESNEXUS.tvUrl : MOVIESNEXUS.movieUrl;
-  if (!MOVIESNEXUS.enabled || !tpl || !(Number(p.tmdb_id) > 0)) return null;
-  let u = tpl.replace("{tmdb}", encodeURIComponent(p.tmdb_id)).replace("{season}", encodeURIComponent(p.season ?? "")).replace("{episode}", encodeURIComponent(p.episode ?? ""));
-  if (sv) u += (u.includes("?") ? "&" : "?") + "sv=" + encodeURIComponent(sv);
-  return u;
-}
-/* Порядок = приоритет. MoviesNexus пока вторичный: русская озвучка и работа в КЗ/iPhone не подтверждены.
-   Чтобы сделать его основным, переместите две строки moviesnexus* выше nexstream. */
-const VIDEO_PROVIDERS = [
-  { id: "nexstream", title: "NexStream", get: p => nexstreamEmbed(p) },
-  { id: "moviesnexus", title: MOVIESNEXUS.title, get: async p => moviesNexusUrl(p) },
-  { id: "moviesnexus-multi", title: MOVIESNEXUS.title + " · Multi-audio", get: async p => moviesNexusUrl(p, "multiaudio") }
-];
-/* Возвращает все доступные источники по порядку приоритета; сбой одного не ломает остальные. */
-async function autoSources(payload) {
-  const items = [], errors = [];
-  for (const pr of VIDEO_PROVIDERS) {
-    try {
-      const url = await pr.get(payload);
-      if (!url) continue;
-      const r = resolveSrc(url);
-      if (r) items.push({ title: pr.title, note: "", url, quality: "Embed", r });
-    } catch (e) { errors.push(pr.title + ": " + (e.message || "ошибка")); }
-  }
-  return { items, error: items.length ? "" : errors.join("; ") };
-}
 async function detail(app, type, id) {
   let { data: m, error } = await sb.from("titles").select(DSEL).eq("id", id).maybeSingle();
   if (error) throw new Error(t("loaderr") + ": " + error.message);
@@ -1038,8 +1004,11 @@ async function detail(app, type, id) {
   const dur = m.runtime ? m.runtime + " " + t("min") : "";
   let pit = playerItems(m), nexstreamError = "";
   if (m.media_type === "movie" && !pit.length && Number(m.tmdb_id) > 0) {
-    const a = await autoSources({ type: "movie", tmdb_id: Number(m.tmdb_id) });
-    pit = a.items; nexstreamError = a.error;
+    try {
+      const url = await nexstreamEmbed({ type: "movie", tmdb_id: Number(m.tmdb_id) });
+      const source = { title: "NexStream", note: "", url, quality: "Embed" };
+      pit = [{ ...source, r: resolveSrc(url) }].filter(x => x.r);
+    } catch (e) { nexstreamError = e.message || "Не удалось получить видео NexStream."; }
   }
   let seasons = [];
   if (m.media_type === "tv") { try { const r = await sb.from("seasons").select("*,episodes(id,episode_number,name,overview,still_path,runtime,air_date,episode_sources(id))").eq("title_id", m.id).order("season_number"); seasons = r.data || []; } catch {} }
@@ -1050,7 +1019,7 @@ async function detail(app, type, id) {
     <div class="facts"><span>★ ${num(m.vote_average) ? num(m.vote_average).toFixed(1) : "—"}</span><span>${Y(m)}</span>${dur ? `<span>${dur}</span>` : ""}${seasons.length ? `<span>${seasons.filter(x => x.season_number > 0).length || seasons.length} сез.</span>` : ""}${gs.map(g => `<span>${esc(GN(g))}</span>`).join("")}</div>
     <p class="ov">${esc(OV(m)) || t("nodesc")}</p>${dr ? `<p class="tag" style="font-size:16px">${t("dir")}: ${dr.people.tmdb_id ? `<a href="#/person/${dr.people.tmdb_id}" style="text-decoration:underline">${esc(dr.people.name)}</a>` : esc(dr.people.name)}</p>` : ""}
     <div class="btns">${m.trailer_key ? `<button class="btn fill" data-yt="${esc(m.trailer_key)}">${t("wtrailer")}</button>` : pit.length ? `<button class="btn fill" data-go="ppS">${t("watch")}</button>` : ""}<button class="btn line" id="fv">${fav ? t("inlist") : t("add")}</button></div></div></div></section>
-    ${pit.length ? playerHtml(pit, m) : (nexstreamError ? `<div class="sec" style="color:var(--mute)">Не удалось загрузить видео: ${esc(nexstreamError)}</div>` : "")}
+    ${pit.length ? playerHtml(pit, m) : (nexstreamError ? `<div class="sec" style="color:var(--mute)">Не удалось загрузить NexStream: ${esc(nexstreamError)}</div>` : "")}
     ${m.media_type === "tv" ? `<section class="sec" id="epsec"></section>` : ""}
 
     ${cast.length ? `<section class="sec"><h2>${t("cast")}</h2><div class="cast">${cast.map(p => `<a class="person"${p.people.tmdb_id ? ` href="#/person/${p.people.tmdb_id}"` : ""}>${p.people.profile_path ? `<img loading="lazy" src="${im("w185", p.people.profile_path)}" alt="">` : `<div class="ph">${esc(p.people.name[0])}</div>`}<b>${esc(p.people.name)}</b><span>${esc(p.character || "")}</span></a>`).join("")}</div></section>` : ""}
@@ -1303,14 +1272,17 @@ async function episodePage(app, id) {
   const srcs = (e.episode_sources || []).slice().sort((a, b) => a.ord - b.ord).map(x => ({ title: x.label, note: "", url: x.url, quality: x.quality || "" }));
   let items = srcs.map(x => ({ ...x, r: resolveSrc(x.url) })).filter(x => x.r), nexstreamError = "";
   if (!items.length && Number(m.tmdb_id) > 0 && Number(e.episode_number) > 0) {
-    const a = await autoSources({ type: "tv", tmdb_id: Number(m.tmdb_id), season: Number(e.seasons.season_number), episode: Number(e.episode_number) });
-    items = a.items; nexstreamError = a.error;
+    try {
+      const url = await nexstreamEmbed({ type: "tv", tmdb_id: Number(m.tmdb_id), season: Number(e.seasons.season_number), episode: Number(e.episode_number) });
+      const source = { title: "NexStream", note: "", url, quality: "Embed" };
+      items = [{ ...source, r: resolveSrc(url) }].filter(x => x.r);
+    } catch (err) { nexstreamError = err.message || "Не удалось получить видео NexStream."; }
   }
   const code = `С${e.seasons.season_number} · Е${e.episode_number}`;
   const nav = x => `#/episode/${x.id}`;
   app.innerHTML = `<div class="page" style="padding-top:96px"><a href="#/tv/${m.id}" style="color:var(--mute)">← ${esc(T(m))}</a>
     <h1 style="margin:8px 0 4px">${esc(e.name || "Серия " + e.episode_number)}</h1><p style="color:var(--mute)">${code}${e.runtime ? " · " + e.runtime + " " + t("min") : ""}</p>
-    ${items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">${nexstreamError ? `Не удалось загрузить видео: ${esc(nexstreamError)}` : "Для этой серии пока нет видеоисточников."}</div>`}
+    ${items.length ? playerHtml(items, { backdrop_path: e.still_path || m.backdrop_path }) : `<div id="msg">${nexstreamError ? `NexStream: ${esc(nexstreamError)}` : "Для этой серии пока нет видеоисточников."}</div>`}
     ${e.overview ? `<p class="ov" style="margin:16px 0">${esc(e.overview)}</p>` : ""}
     <div class="btns" style="margin:16px 0">${prev ? `<a class="btn line" href="${nav(prev)}">← Предыдущая</a>` : ""}${next ? `<a class="btn fill" href="${nav(next)}">Следующая серия →</a>` : ""}</div></div>`;
   if (items.length) {
