@@ -10,7 +10,7 @@ if (!ADMIN_TOKEN || ADMIN_TOKEN.length < 32 || !SIGNING_SECRET || SIGNING_SECRET
 if (!TORRSERVER_URL) throw new Error('Configure TORRSERVER_URL');
 const YTS_HOSTS = ['https://yts.mx', 'https://yts.lt', 'https://yts.am'];
 const TRACKERS = ['udp://tracker.opentrackr.org:1337/announce', 'udp://open.demonii.com:1337/announce', 'udp://tracker.openbittorrent.com:80', 'udp://tracker.torrent.eu.org:451/announce', 'udp://open.stealth.si:80/announce', 'udp://exodus.desync.com:6969/announce', 'udp://tracker.moeru.ai:6969/announce'];
-async function searchYts(title, year) {
+async function searchYts(title, year, quality) {
   let movies = null;
   for (const host of YTS_HOSTS) {
     try {
@@ -28,12 +28,13 @@ async function searchYts(title, year) {
   const exact = list.filter(m => norm(m.title) === q || norm(m.title_english || '') === q);
   if (exact.length) list = exact;
   else if (title) list = list.filter(m => norm(m.title).includes(q) || q.includes(norm(m.title)));
-  const items = [];
+  let items = [];
   for (const m of list) for (const t of m.torrents || []) {
     if (!t.hash) continue;
     const hevc = /x265|hevc/i.test(t.video_codec || '') || t.quality === '2160p';
     items.push({ m, t, hevc });
   }
+  if (quality) items = items.filter(i => i.t.quality === quality);
   if (!items.length) return null;
   const pool = items.some(i => !i.hevc) ? items.filter(i => !i.hevc) : items;
   pool.sort((a, b) => (b.t.seeds || 0) - (a.t.seeds || 0));
@@ -41,6 +42,47 @@ async function searchYts(title, year) {
   const name = `${m.title_long || m.title} [${t.quality}]`;
   const magnet = `magnet:?xt=urn:btih:${t.hash}&dn=${encodeURIComponent(name)}` + TRACKERS.map(x => '&tr=' + encodeURIComponent(x)).join('');
   return { magnet, name, seeders: t.seeds || 0, size: t.size_bytes || 0, hash: t.hash };
+}
+const TORRENTIO = (process.env.TORRENTIO_URL || 'https://torrentio.strem.fun').replace(/\/$/, '');
+const RU_RE = /🇷🇺|\brus(sian)?\b|дубл|озвуч|\bdub|\bmvo\b|\bdvo\b|\bavo\b|lostfilm|pifagor|kubik|hdrezka/i;
+async function imdbId(title, year) {
+  try {
+    const r = await fetch(`https://v3-cinemeta.strem.io/catalog/movie/top/search=${encodeURIComponent(title)}.json`, { signal: AbortSignal.timeout(10000) });
+    if (!r.ok) return null;
+    const metas = ((await r.json()).metas || []).filter(m => /^tt\d+$/.test(m.id));
+    const m = year ? metas.find(x => String(x.year || x.releaseInfo || '').startsWith(String(year))) : metas[0];
+    return m ? m.id : null;
+  } catch { return null; }
+}
+async function searchTorrentio(title, year, quality, lang, imdb) {
+  const id = imdb || await imdbId(title, year);
+  if (!id) return null;
+  const opts = ['providers=yts,eztv,1337x,thepiratebay,kickasstorrents,torrentgalaxy,magnetdl,rutor,rutracker', 'sort=seeders', 'qualityfilter=brremux,scr,cam'];
+  if (lang === 'ru') opts.push('language=russian');
+  const r = await fetch(`${TORRENTIO}/${opts.join('|')}/stream/movie/${id}.json`, { headers: { Accept: 'application/json', 'User-Agent': 'Mozilla/5.0' }, signal: AbortSignal.timeout(20000) });
+  if (!r.ok) throw new Error('Torrentio HTTP ' + r.status);
+  const items = [];
+  for (const s of (await r.json()).streams || []) {
+    if (!s.infoHash) continue;
+    const text = `${s.name || ''}\n${s.title || ''}`;
+    const q = /2160p|4k/i.test(text) ? '2160p' : /1080p/i.test(text) ? '1080p' : /720p/i.test(text) ? '720p' : '';
+    if (quality && q !== quality) continue;
+    if (lang === 'ru' && !RU_RE.test(text)) continue;
+    const seeds = +((/👤\s*(\d+)/.exec(text) || [])[1] || 0);
+    const sm = /💾\s*([\d.]+)\s*(GB|MB)/i.exec(text);
+    const size = sm ? Math.round(parseFloat(sm[1]) * (sm[2].toUpperCase() === 'GB' ? 1073741824 : 1048576)) : 0;
+    const hevc = q === '2160p' || /x265|hevc|h\.?265|10.?bit|hdr|dolby.?vision|\bdv\b/i.test(text);
+    const heavy = /dts|truehd|atmos|e-?ac-?3|ddp/i.test(text);
+    items.push({ s, q, seeds, size, hevc, heavy });
+  }
+  if (!items.length) return null;
+  let pool = [i => !i.hevc && !i.heavy, i => !i.hevc, () => true].map(f => items.filter(f)).find(l => l.length);
+  pool.sort((a, b) => b.seeds - a.seeds);
+  const { s, q, seeds, size } = pool[0];
+  const trackers = [...new Set([...TRACKERS, ...(s.sources || []).filter(x => String(x).startsWith('tracker:')).map(x => x.slice(8))])];
+  const name = String(s.title || title).split('\n')[0] + (q ? ` [${q}]` : '');
+  const magnet = `magnet:?xt=urn:btih:${s.infoHash}&dn=${encodeURIComponent(name)}` + trackers.map(x => '&tr=' + encodeURIComponent(x)).join('');
+  return { magnet, name, seeders: seeds, size, hash: s.infoHash };
 }
 const app = new Hono();
 const hits = new Map();
@@ -107,15 +149,21 @@ app.use('/api/torrent/search', bodyLimit({ maxSize: 2048 }));
 app.post('/api/torrent/search', async c => {
   if (!fromSite(c) && !isAdmin(c)) return c.json({ error: 'Forbidden' }, 403);
   if (limited(c, 'search:', 20)) return c.json({ error: 'Too many requests' }, 429);
-  let title, year;
+  let title, year, quality, lang, imdb;
   try {
     const body = await c.req.json();
     title = String(body.title || '').trim();
     year = String(body.year || '').trim();
+    quality = String(body.quality || '').trim();
+    lang = body.lang === 'ru' ? 'ru' : 'orig';
+    imdb = /^tt\d{5,10}$/.test(String(body.imdb || '')) ? String(body.imdb) : '';
+    if (quality && !['720p', '1080p', '2160p'].includes(quality)) throw new Error();
     if (!title) throw new Error();
   } catch { return c.json({ error: 'Expected a movie title' }, 400); }
   try {
-    const best = await searchYts(title, year);
+    let best = null;
+    if (lang === 'orig') { try { best = await searchYts(title, year, quality); } catch (e) { console.error('YTS:', e?.message || e); } }
+    if (!best) { try { best = await searchTorrentio(title, year, quality, lang, imdb); } catch (e) { console.error('Torrentio:', e?.message || e); if (lang === 'ru') return c.json({ error: 'Torrent search failed' }, 502); } }
     if (!best) return c.json({ error: 'Source not found' }, 404);
     return c.json({ magnet: best.magnet, name: best.name, seeders: best.seeders, size: best.size, sig: magnetSig(best.hash) });
   } catch { return c.json({ error: 'Torrent search failed' }, 502); }
