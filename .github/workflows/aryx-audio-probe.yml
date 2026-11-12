@@ -28,7 +28,7 @@ jobs:
 
       - name: Build isolated candidate image with FFmpeg
         run: |
-          python3 - <<'PY'
+          python3 - <<PY
           from pathlib import Path
           path = Path('$RUNNER_TEMP/aryx-probe/Dockerfile')
           text = path.read_text()
