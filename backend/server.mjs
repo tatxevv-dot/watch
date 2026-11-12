@@ -228,12 +228,15 @@ app.post('/api/torrent/stream', async c => {
 });
 /* MKV/любой контейнер -> фрагментированный MP4 на лету: видео без перекодирования, звук в AAC */
 let remuxing = 0;
-const probeAudio = src => new Promise(resolve => {
-  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '8000000', '-probesize', '8000000', '-select_streams', 'a', '-show_entries', 'stream=index:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
-    if (err) return resolve(null);
+const probeCache = new Map();
+const probeAudio = (src, wantRu) => new Promise(resolve => {
+  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '8000000', '-probesize', '8000000', '-show_entries', 'stream=index,codec_type,codec_name,profile,pix_fmt,width,height:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
+    if (err) { console.error('ffprobe:', err.message); return resolve(null); }
     try {
-      const a = JSON.parse(out).streams || [];
-      const i = a.findIndex(s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || ''));
+      const all = JSON.parse(out).streams || [];
+      console.log('probe', JSON.stringify(all.map(s => [s.codec_type, s.codec_name, s.profile, s.pix_fmt, s.height, s.tags?.language].filter(Boolean).join('/'))));
+      const a = all.filter(s => s.codec_type === 'audio');
+      const i = wantRu ? a.findIndex(s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || '')) : -1;
       resolve(i >= 0 ? i : null);
     } catch { resolve(null); }
   });
@@ -243,14 +246,20 @@ app.get('/remux', async c => {
   if (!Number.isSafeInteger(expiry) || expiry < Date.now() / 1000 || expiry > Date.now() / 1000 + 14460 || !equal(u.searchParams.get('sig') || '', signature(u))) return c.json({ error: 'Invalid or expired video link' }, 403);
   const magnet = u.searchParams.get('m') || '', index = Number(u.searchParams.get('i'));
   if (!magnet.startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(index) || index < 1) return c.json({ error: 'Bad request' }, 400);
-  if (remuxing >= 2) return c.json({ error: 'Busy, retry later' }, 429);
+  if (remuxing >= 4) return c.json({ error: 'Busy, retry later' }, 429);
   remuxing++;
   let released = false;
   const release = () => { if (!released) { released = true; remuxing--; } };
   try {
     const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
-    const audio = u.searchParams.get('lang') === 'ru' ? await probeAudio(src) : null;
-    const args = ['-hide_banner', '-loglevel', 'error', '-nostdin',
+    const pk = index + magnet.slice(20, 60) + u.searchParams.get('lang');
+    if (!probeCache.has(pk)) { probeCache.set(pk, await probeAudio(src, u.searchParams.get('lang') === 'ru')); if (probeCache.size > 50) probeCache.clear(); }
+    const audio = probeCache.get(pk);
+    const range = /^bytes=(\d+)-(\d*)$/.exec(c.req.header('range') || ''), BIG = 2 ** 40;
+    const rEnd = range && range[2] !== '' ? Number(range[2]) : null;
+    console.log('remux req', 'range=' + (c.req.header('range') || '-'), 'ua=' + (c.req.header('user-agent') || '').slice(0, 90));
+    if (range && Number(range[1]) > 0) { release(); return new Response(null, { status: 416, headers: { 'Content-Range': 'bytes */' + BIG, 'Cache-Control': 'no-store' } }); }
+    const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
       '-protocol_whitelist', 'http,https,tcp,tls,crypto',
       '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
       '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts',
@@ -258,7 +267,7 @@ app.get('/remux', async c => {
       '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
       '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
       '-sn', '-dn', '-map_chapters', '-1',
-      '-movflags', 'frag_keyframe+empty_moov+default_base_moof',
+      '-avoid_negative_ts', 'make_zero', '-movflags', 'frag_keyframe+empty_moov+default_base_moof+negative_cts_offsets',
       '-f', 'mp4', 'pipe:1'];
     const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
     console.log('remux start', 'index=' + index, 'audio=' + (audio ?? 'default'));
@@ -267,17 +276,26 @@ app.get('/remux', async c => {
     ff.stderr.on('data', d => { if (log.length < 2000) log += d; });
     const kill = () => { try { ff.kill('SIGKILL'); } catch {} };
     const limit = setTimeout(kill, 6 * 3600 * 1000);
-    ff.on('close', (code, sig) => { clearTimeout(limit); release(); console.log('remux end', 'code=' + code, 'signal=' + sig, 'bytes=' + sent); if (code && code !== 255 && log) console.error('ffmpeg:', code, log.trim()); });
+    ff.on('close', (code, sig) => { clearTimeout(limit); release(); console.log('remux end', 'code=' + code, 'signal=' + sig, 'bytes=' + sent); if (log) console.error('ffmpeg:', code, log.trim()); });
     ff.on('error', e => { console.error('ffmpeg spawn:', e?.message || e); release(); });
     const body = new ReadableStream({
       start(ctrl) {
-        ff.stdout.on('data', chunk => { sent += chunk.length; try { ctrl.enqueue(new Uint8Array(chunk)); } catch { kill(); } });
+        ff.stdout.on('data', chunk => {
+          if (rEnd !== null && sent >= rEnd + 1) return;
+          if (rEnd !== null && sent + chunk.length > rEnd + 1) chunk = chunk.subarray(0, rEnd + 1 - sent);
+          sent += chunk.length;
+          try { ctrl.enqueue(new Uint8Array(chunk)); } catch { kill(); return; }
+          if (rEnd !== null && sent >= rEnd + 1) { try { ctrl.close(); } catch {} kill(); }
+        });
         ff.stdout.on('end', () => { try { ctrl.close(); } catch {} });
         ff.stdout.on('error', () => { try { ctrl.close(); } catch {} });
       },
       cancel() { kill(); }
     });
-    return new Response(body, { status: 200, headers: { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store', 'Accept-Ranges': 'none', 'X-Accel-Buffering': 'no' } });
+    const h = { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' };
+    if (range) { Object.assign(h, { 'Accept-Ranges': 'bytes', 'Content-Range': `bytes 0-${rEnd ?? BIG - 1}/${BIG}` }); if (rEnd !== null) h['Content-Length'] = String(rEnd + 1); return new Response(body, { status: 206, headers: h }); }
+    h['Accept-Ranges'] = 'bytes';
+    return new Response(body, { status: 200, headers: h });
   } catch (e) { release(); console.error('remux failed:', e?.message || e); return c.json({ error: 'Remux failed' }, 502); }
 });
 app.get('/proxy', async c => {
