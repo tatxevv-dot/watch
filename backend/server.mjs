@@ -271,7 +271,20 @@ async function ensureHls(p, waitMs) {
     if (s.done || !sessions.has(key) || Date.now() > until) return { s, key, ready: false };
     await new Promise(r => setTimeout(r, 250));
   }
+  diagSegment(s);
   return { s, key, ready: true };
+}
+async function diagSegment(s) {
+  if (s.diag) return; s.diag = true;
+  try {
+    const seg = join(s.dir, 'seg0.m4s'), init = join(s.dir, 'init.mp4'), out = join(s.dir, 'diag.mp4');
+    for (let i = 0; i < 20 && !existsSync(seg); i++) await new Promise(r => setTimeout(r, 300));
+    const a = await readFile(init), b = await readFile(seg);
+    const { writeFile } = await import('node:fs/promises');
+    await writeFile(out, Buffer.concat([a, b]));
+    execFile('ffprobe', ['-v', 'error', '-show_entries', 'stream=index,codec_type,codec_name,profile,level,pix_fmt,start_time,duration,r_frame_rate,has_b_frames:format=duration,start_time', '-of', 'compact', out], { timeout: 20000 }, (e, o, er) => console.log('hls diag seg0', JSON.stringify((o || '').trim().split('\n').join(' | ')), e ? 'err=' + e.message : '', (er || '').slice(0, 300)));
+    execFile('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'packet=pts_time,dts_time,flags', '-read_intervals', '%+#8', '-of', 'csv=p=0', out], { timeout: 20000 }, (e, o) => console.log('hls diag pkts', JSON.stringify((o || '').trim().split('\n').join(' '))));
+  } catch (e) { console.error('diag:', e?.message || e); }
 }
 async function startSession(key, p) {
   if (sessions.size >= 3) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
@@ -324,7 +337,15 @@ app.get('/hls/:tok/:file', async c => {
       if (s.done || Date.now() > until) { console.log('hls req', file, 'NOT READY'); return c.json({ error: 'Not ready' }, 404); }
       await new Promise(r => setTimeout(r, 200));
     }
-    const buf = await readFile(path);
+    let buf = await readFile(path);
+    if (file === 'index.m3u8') {
+      let t = buf.toString();
+      const durs = [...t.matchAll(/#EXTINF:([\d.]+)/g)].map(m => +m[1]);
+      const td = Math.max(10, Math.ceil(Math.max(0, ...durs)));
+      t = t.replace(/#EXT-X-TARGETDURATION:\d+/, '#EXT-X-TARGETDURATION:' + td);
+      console.log('hls m3u8', 'td=' + td, 'segs=' + durs.length, 'durs=' + durs.slice(0, 6).join(','));
+      buf = Buffer.from(t);
+    }
     console.log('hls req', file, 200, buf.length + 'b', 'wait=' + (Date.now() - s.last) + 'ms', (c.req.header('user-agent') || '').includes('iPhone') ? 'iphone' : 'other');
     return new Response(buf, { status: 200, headers: { 'Content-Type': hlsMime(file), 'Cache-Control': 'no-store' } });
   } catch (e) { console.error('hls failed:', e?.message || e); return c.json({ error: 'HLS failed' }, 502); }
