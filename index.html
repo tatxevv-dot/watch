@@ -1004,7 +1004,7 @@ function initPlayer(root, items, ctx) {
       }
       const nativeHls = s.r.live && isHls(s.r.src) && !!el.canPlayType("application/vnd.apple.mpegurl");
       if (isHls(s.r.src) && window.Hls && Hls.isSupported() && !nativeHls) {
-        hl = new Hls();
+        hl = new Hls(s.r.live ? { manifestLoadingTimeOut: 60000, manifestLoadingMaxRetry: 3, levelLoadingTimeOut: 60000, levelLoadingMaxRetry: 3, fragLoadingTimeOut: 60000, fragLoadingMaxRetry: 4 } : {});
         hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; if (s.r.live) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
         hl.on(Hls.Events.ERROR, (e, d) => {
           if (s.r.live) { const x = scr.querySelector("[data-ld] span"); if (x) x.textContent = "hls: " + d.details + (d.response ? " HTTP " + d.response.code : "") + (d.fatal ? " (fatal)" : ""); }
