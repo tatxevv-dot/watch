@@ -233,13 +233,16 @@ app.post('/api/torrent/stream', async c => {
 let remuxing = 0;
 const probeCache = new Map();
 const probeAudio = (src, wantRu) => new Promise(resolve => {
-  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '8000000', '-probesize', '8000000', '-show_entries', 'stream=index,codec_type,codec_name,profile,pix_fmt,width,height:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
+  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '1000000', '-probesize', '2000000', '-show_entries', 'stream=index,codec_type,codec_name,profile,pix_fmt,width,height:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
     if (err) { console.error('ffprobe:', err.message); return resolve(null); }
     try {
       const all = JSON.parse(out).streams || [];
       console.log('probe', JSON.stringify(all.map(s => [s.codec_type, s.codec_name, s.profile, s.pix_fmt, s.height, s.tags?.language].filter(Boolean).join('/'))));
       const a = all.filter(s => s.codec_type === 'audio');
-      const i = wantRu ? a.findIndex(s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || '')) : -1;
+      const isRu = s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || '');
+      const bad = s => /commentary|комментар|original|оригин/i.test(s.tags?.title || '');
+      let i = wantRu ? a.findIndex(s => isRu(s) && !bad(s)) : -1;
+      if (wantRu && i < 0) i = a.findIndex(isRu);
       resolve(i >= 0 ? i : null);
     } catch { resolve(null); }
   });
@@ -293,7 +296,8 @@ async function startSession(key, p) {
   sessions.set(key, s);
   await mkdir(dir, { recursive: true });
   const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(p.m)}&play=true&index=${p.i}`;
-  const aMap = p.lang === 'ru' ? '0:a:m:language:rus?' : '0:a:0?';
+  const ai = await probeAudio(src, p.lang === 'ru');
+  const aMap = `0:a:${ai ?? 0}?`;
   if (!sessions.has(key)) return s;
   const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
     '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
