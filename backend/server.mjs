@@ -216,6 +216,8 @@ app.post('/api/torrent/stream', async c => {
             const index = main?.id || 1;
             const base = process.env.RENDER_EXTERNAL_URL || new URL(c.req.url).origin;
             const payload = Buffer.from(JSON.stringify({ m: magnet, i: Number(index), lang, exp: Math.floor(Date.now() / 1000) + 14400 })).toString('base64url');
+            const t0 = Date.now();
+            try { const r = await ensureHls({ m: magnet, i: Number(index), lang }, 55000); console.log('hls prepared', r.ready, (Date.now() - t0) + 'ms'); } catch (e) { console.error('hls prepare:', e?.message || e); }
             return c.json({ streamUrl: `${base.replace(/\/$/, '')}/hls/${payload}.${hlsSign(payload)}/index.m3u8` });
           }
         } else console.error('TorrServer get HTTP', r.status);
@@ -254,6 +256,23 @@ const stopSession = (key, why) => {
 };
 setInterval(() => { const now = Date.now(); for (const [k, s] of sessions) if (now - s.last > 10 * 60 * 1000 || now - s.started > 6 * 3600 * 1000) stopSession(k, 'idle'); }, 60000).unref();
 rm(HLS_ROOT, { recursive: true, force: true }).catch(() => {});
+const playlistReady = async path => {
+  if (!existsSync(path)) return false;
+  const t = await readFile(path, 'utf8').catch(() => '');
+  return t.includes('#EXT-X-ENDLIST') || (t.match(/#EXTINF/g) || []).length >= 2;
+};
+async function ensureHls(p, waitMs) {
+  const key = p.i + '|' + p.lang + '|' + p.m;
+  let s = sessions.get(key);
+  if (!s) s = await startSession(key, p);
+  s.last = Date.now();
+  const until = Date.now() + waitMs, path = join(s.dir, 'index.m3u8');
+  while (!(await playlistReady(path))) {
+    if (s.done || !sessions.has(key) || Date.now() > until) return { s, key, ready: false };
+    await new Promise(r => setTimeout(r, 250));
+  }
+  return { s, key, ready: true };
+}
 async function startSession(key, p) {
   if (sessions.size >= 3) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
   const dir = join(HLS_ROOT, randomBytes(8).toString('hex'));
@@ -261,17 +280,17 @@ async function startSession(key, p) {
   sessions.set(key, s);
   await mkdir(dir, { recursive: true });
   const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(p.m)}&play=true&index=${p.i}`;
-  const audio = await probeAudio(src, p.lang === 'ru');
+  const aMap = p.lang === 'ru' ? '0:a:m:language:rus?' : '0:a:0?';
   if (!sessions.has(key)) return s;
   const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
     '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
     '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-    '-err_detect', 'ignore_err', '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts+discardcorrupt', '-readrate', '3',
+    '-err_detect', 'ignore_err', '-analyzeduration', '2000000', '-probesize', '4000000', '-fflags', '+genpts+discardcorrupt', '-readrate', '3',
     '-i', src,
-    '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
+    '-map', '0:v:0', '-map', aMap,
     '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
     '-sn', '-dn', '-map_chapters', '-1', '-avoid_negative_ts', 'make_zero',
-    '-f', 'hls', '-hls_time', '6', '-hls_list_size', '0', '-hls_playlist_type', 'event',
+    '-f', 'hls', '-hls_time', '2', '-hls_list_size', '0', '-hls_playlist_type', 'event',
     '-hls_segment_type', 'fmp4', '-hls_fmp4_init_filename', 'init.mp4',
     '-hls_segment_filename', join(dir, 'seg%d.m4s'), '-hls_flags', 'independent_segments+temp_file',
     join(dir, 'index.m3u8')];
@@ -280,7 +299,7 @@ async function startSession(key, p) {
   ff.stderr.on('data', d => { if (log.length < 3000) log += d; });
   ff.on('close', (code, sig) => { console.log('hls ffmpeg end', 'code=' + code, 'signal=' + sig); if (log) console.error('ffmpeg:', log.trim()); s.done = true; });
   ff.on('error', e => console.error('ffmpeg spawn:', e?.message || e));
-  console.log('hls start', 'index=' + p.i, 'audio=' + (audio ?? 'default'));
+  console.log('hls start', 'index=' + p.i, 'audio=' + aMap);
   return s;
 }
 app.get('/hls/:tok/:file', async c => {
@@ -291,20 +310,19 @@ app.get('/hls/:tok/:file', async c => {
   try { p = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return c.json({ error: 'Invalid video link' }, 403); }
   if (!(p.exp > Date.now() / 1000) || !String(p.m).startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(p.i) || p.i < 1) return c.json({ error: 'Expired video link' }, 403);
   try {
-    const key = p.i + '|' + p.lang + '|' + p.m;
-    let s = sessions.get(key);
-    if (!s) s = await startSession(key, p);
-    s.last = Date.now();
-    const path = join(s.dir, file), until = Date.now() + (file === 'index.m3u8' ? 100000 : 30000);
-    const ready = async () => {
-      if (!existsSync(path)) return false;
-      if (file !== 'index.m3u8') return true;
-      const t = await readFile(path, 'utf8').catch(() => '');
-      return t.includes('#EXT-X-ENDLIST') || (t.match(/#EXTINF/g) || []).length >= 3;
-    };
-    while (!(await ready())) {
-      if (s.done || !sessions.has(key) || Date.now() > until) { console.log('hls req', file, 'NOT READY', 'done=' + !!s.done); return c.json({ error: 'Not ready' }, 404); }
-      await new Promise(r => setTimeout(r, 300));
+    let s, key;
+    if (file === 'index.m3u8') {
+      const r = await ensureHls(p, 100000); s = r.s; key = r.key;
+      if (!r.ready) { console.log('hls req', file, 'NOT READY', 'done=' + !!s.done); return c.json({ error: 'Not ready' }, 404); }
+    } else {
+      key = p.i + '|' + p.lang + '|' + p.m; s = sessions.get(key);
+      if (!s) return c.json({ error: 'Session ended' }, 404);
+      s.last = Date.now();
+    }
+    const path = join(s.dir, file), until = Date.now() + 30000;
+    while (!existsSync(path)) {
+      if (s.done || Date.now() > until) { console.log('hls req', file, 'NOT READY'); return c.json({ error: 'Not ready' }, 404); }
+      await new Promise(r => setTimeout(r, 200));
     }
     const buf = await readFile(path);
     console.log('hls req', file, 200, buf.length + 'b', 'wait=' + (Date.now() - s.last) + 'ms', (c.req.header('user-agent') || '').includes('iPhone') ? 'iphone' : 'other');
