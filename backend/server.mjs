@@ -255,7 +255,7 @@ const stopSession = (key, why) => {
 setInterval(() => { const now = Date.now(); for (const [k, s] of sessions) if (now - s.last > 10 * 60 * 1000 || now - s.started > 6 * 3600 * 1000) stopSession(k, 'idle'); }, 60000).unref();
 rm(HLS_ROOT, { recursive: true, force: true }).catch(() => {});
 async function startSession(key, p) {
-  if (sessions.size >= 2) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
+  if (sessions.size >= 3) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
   const dir = join(HLS_ROOT, randomBytes(8).toString('hex'));
   const s = { dir, last: Date.now(), started: Date.now(), ff: null };
   sessions.set(key, s);
@@ -266,7 +266,7 @@ async function startSession(key, p) {
   const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
     '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
     '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-    '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts', '-readrate', '4',
+    '-err_detect', 'ignore_err', '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts+discardcorrupt', '-readrate', '3',
     '-i', src,
     '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
     '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
@@ -291,15 +291,17 @@ app.get('/hls/:tok/:file', async c => {
   try { p = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return c.json({ error: 'Invalid video link' }, 403); }
   if (!(p.exp > Date.now() / 1000) || !String(p.m).startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(p.i) || p.i < 1) return c.json({ error: 'Expired video link' }, 403);
   try {
-    let s = sessions.get(payload);
-    if (!s) s = await startSession(payload, p);
+    const key = p.i + '|' + p.lang + '|' + p.m;
+    let s = sessions.get(key);
+    if (!s) s = await startSession(key, p);
     s.last = Date.now();
     const path = join(s.dir, file), until = Date.now() + (file === 'index.m3u8' ? 90000 : 30000);
     while (!existsSync(path)) {
-      if (s.done || !sessions.has(payload) || Date.now() > until) return c.json({ error: 'Not ready' }, 404);
+      if (s.done || !sessions.has(key) || Date.now() > until) { console.log('hls req', file, 'NOT READY', 'done=' + !!s.done); return c.json({ error: 'Not ready' }, 404); }
       await new Promise(r => setTimeout(r, 300));
     }
     const buf = await readFile(path);
+    console.log('hls req', file, 200, buf.length + 'b', 'wait=' + (Date.now() - s.last) + 'ms', (c.req.header('user-agent') || '').includes('iPhone') ? 'iphone' : 'other');
     return new Response(buf, { status: 200, headers: { 'Content-Type': hlsMime(file), 'Cache-Control': 'no-store' } });
   } catch (e) { console.error('hls failed:', e?.message || e); return c.json({ error: 'HLS failed' }, 502); }
 });
