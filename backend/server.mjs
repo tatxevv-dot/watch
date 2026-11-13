@@ -286,7 +286,7 @@ async function startSession(key, p) {
 app.get('/hls/:tok/:file', async c => {
   const { tok, file } = c.req.param();
   const [payload, sig] = tok.split('.');
-  if (!payload || !sig || !equal(sig, hlsSign(payload)) || !/^(index\.m3u8|init\.mp4|seg\d+\.m4s)$/.test(file)) return c.json({ error: 'Invalid video link' }, 403);
+  if (!payload || !sig || !equal(sig, hlsSign(payload)) || !/^(index\.m3u8|init\.mp4|seg\d+\.m4s)$/.test(file)) { console.log('hls req', file, 403, 'bad token/file'); return c.json({ error: 'Invalid video link' }, 403); }
   let p;
   try { p = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return c.json({ error: 'Invalid video link' }, 403); }
   if (!(p.exp > Date.now() / 1000) || !String(p.m).startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(p.i) || p.i < 1) return c.json({ error: 'Expired video link' }, 403);
@@ -295,8 +295,14 @@ app.get('/hls/:tok/:file', async c => {
     let s = sessions.get(key);
     if (!s) s = await startSession(key, p);
     s.last = Date.now();
-    const path = join(s.dir, file), until = Date.now() + (file === 'index.m3u8' ? 90000 : 30000);
-    while (!existsSync(path)) {
+    const path = join(s.dir, file), until = Date.now() + (file === 'index.m3u8' ? 100000 : 30000);
+    const ready = async () => {
+      if (!existsSync(path)) return false;
+      if (file !== 'index.m3u8') return true;
+      const t = await readFile(path, 'utf8').catch(() => '');
+      return t.includes('#EXT-X-ENDLIST') || (t.match(/#EXTINF/g) || []).length >= 3;
+    };
+    while (!(await ready())) {
       if (s.done || !sessions.has(key) || Date.now() > until) { console.log('hls req', file, 'NOT READY', 'done=' + !!s.done); return c.json({ error: 'Not ready' }, 404); }
       await new Promise(r => setTimeout(r, 300));
     }
