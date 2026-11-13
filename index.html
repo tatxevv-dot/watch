@@ -992,10 +992,16 @@ function initPlayer(root, items, ctx) {
       el.addEventListener("pause", () => { if (!el.ended) saveProgress(ctx, st.pos, st.dur); });
       el.addEventListener("ended", () => { saveProgress(ctx, st.dur, st.dur); ls.set(key, 0); if (ctx.onNext) ctx.onNext(scr); });
       el.addEventListener("error", () => fail("media"));
-      if (s.r.live) { const w = setTimeout(() => { if (my === gen && el.readyState < 2) fail("timeout"); }, 100000); el.addEventListener("loadeddata", () => clearTimeout(w), { once: true }); }
+      if (s.r.live) { const w = setTimeout(() => { if (my === gen && el.readyState < 2) fail("timeout"); }, 180000); el.addEventListener("loadeddata", () => clearTimeout(w), { once: true }); }
+      if (s.r.live) {
+        scr.insertAdjacentHTML("beforeend", '<div class="pp-over" data-ld style="pointer-events:none"><b>Готовим видео…</b><span>Первый запуск может занять до минуты</span></div>');
+        const rmLd = () => { const o = scr.querySelector("[data-ld]"); if (o) o.remove(); };
+        ["loadeddata", "playing", "error"].forEach(ev => el.addEventListener(ev, rmLd, { once: true }));
+        begin(null);
+      }
       if (isHls(s.r.src) && window.Hls && Hls.isSupported()) {
         hl = new Hls();
-        hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
+        hl.on(Hls.Events.MANIFEST_PARSED, () => { if (my !== gen) return; if (s.r.live) return; const hs = [...new Set(hl.levels.map(l => l.height).filter(Boolean))].sort((a, b) => a - b); begin(hs); });
         hl.on(Hls.Events.ERROR, (e, d) => {
           if (!d.fatal || my !== gen) return;
           if (d.type === Hls.ErrorTypes.MEDIA_ERROR && recovered < 2) { if (recovered++) hl.swapAudioCodec(); hl.recoverMediaError(); return; }
@@ -1005,7 +1011,7 @@ function initPlayer(root, items, ctx) {
         hl.loadSource(s.r.src); hl.attachMedia(el);
       } else if (isHls(s.r.src)) {
         el.src = s.r.src;
-        nativeLevels(s.r.src).then(lv => { if (my !== gen) return; const hs = [...new Set(lv.map(l => l.height))]; begin(hs, lv); });
+        if (!s.r.live) nativeLevels(s.r.src).then(lv => { if (my !== gen) return; const hs = [...new Set(lv.map(l => l.height))]; begin(hs, lv); });
       } else { el.src = s.r.src; begin(null); }
     } else if (s.r.kind === "plyr" && window.Plyr) {
       el = document.createElement("div"); el.dataset.plyrProvider = s.r.prov; el.dataset.plyrEmbedId = s.r.id; scr.appendChild(el);
