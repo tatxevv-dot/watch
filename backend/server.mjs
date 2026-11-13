@@ -1,5 +1,9 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
 import { spawn, execFile } from 'node:child_process';
+import { mkdir, rm, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { serve } from '@hono/node-server';
@@ -210,12 +214,9 @@ app.post('/api/torrent/stream', async c => {
             const files = (st.file_stats || []).filter(f => /\.(mp4|m4v|webm|mkv|avi|mov)$/i.test(f.path || ''));
             const main = files.sort((x, y) => (y.length || 0) - (x.length || 0))[0] || st.file_stats?.[0];
             const index = main?.id || 1;
-            const expiry = Math.floor(Date.now() / 1000) + 14400;
-            const base = new URL(c.req.url).origin;
-            const u = new URL('/remux', base);
-            u.searchParams.set('m', magnet); u.searchParams.set('i', String(index)); u.searchParams.set('lang', lang);
-            u.searchParams.set('exp', String(expiry)); u.searchParams.set('sig', signature(u));
-            return c.json({ streamUrl: u.href });
+            const base = process.env.RENDER_EXTERNAL_URL || new URL(c.req.url).origin;
+            const payload = Buffer.from(JSON.stringify({ m: magnet, i: Number(index), lang, exp: Math.floor(Date.now() / 1000) + 14400 })).toString('base64url');
+            return c.json({ streamUrl: `${base.replace(/\/$/, '')}/hls/${payload}.${hlsSign(payload)}/index.m3u8` });
           }
         } else console.error('TorrServer get HTTP', r.status);
       } catch (e) { console.error('TorrServer get error:', e?.message || e); }
@@ -241,62 +242,66 @@ const probeAudio = (src, wantRu) => new Promise(resolve => {
     } catch { resolve(null); }
   });
 });
-app.get('/remux', async c => {
-  const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
-  if (!Number.isSafeInteger(expiry) || expiry < Date.now() / 1000 || expiry > Date.now() / 1000 + 14460 || !equal(u.searchParams.get('sig') || '', signature(u))) return c.json({ error: 'Invalid or expired video link' }, 403);
-  const magnet = u.searchParams.get('m') || '', index = Number(u.searchParams.get('i'));
-  if (!magnet.startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(index) || index < 1) return c.json({ error: 'Bad request' }, 400);
-  if (remuxing >= 4) return c.json({ error: 'Busy, retry later' }, 429);
-  remuxing++;
-  let released = false;
-  const release = () => { if (!released) { released = true; remuxing--; } };
+const HLS_ROOT = join(tmpdir(), 'watch-hls');
+const sessions = new Map();
+const hlsMime = f => f.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : f.endsWith('.m4s') ? 'video/iso.segment' : 'video/mp4';
+const hlsSign = payload => createHmac('sha256', SIGNING_SECRET).update('hls:' + payload).digest('base64url');
+const stopSession = (key, why) => {
+  const s = sessions.get(key); if (!s) return;
+  sessions.delete(key); try { s.ff?.kill('SIGKILL'); } catch {}
+  rm(s.dir, { recursive: true, force: true }).catch(() => {});
+  console.log('hls stop', why);
+};
+setInterval(() => { const now = Date.now(); for (const [k, s] of sessions) if (now - s.last > 10 * 60 * 1000 || now - s.started > 6 * 3600 * 1000) stopSession(k, 'idle'); }, 60000).unref();
+rm(HLS_ROOT, { recursive: true, force: true }).catch(() => {});
+async function startSession(key, p) {
+  if (sessions.size >= 2) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
+  const dir = join(HLS_ROOT, randomBytes(8).toString('hex'));
+  const s = { dir, last: Date.now(), started: Date.now(), ff: null };
+  sessions.set(key, s);
+  await mkdir(dir, { recursive: true });
+  const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(p.m)}&play=true&index=${p.i}`;
+  const audio = await probeAudio(src, p.lang === 'ru');
+  if (!sessions.has(key)) return s;
+  const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
+    '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
+    '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
+    '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts', '-readrate', '4',
+    '-i', src,
+    '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
+    '-sn', '-dn', '-map_chapters', '-1', '-avoid_negative_ts', 'make_zero',
+    '-f', 'hls', '-hls_time', '6', '-hls_list_size', '0', '-hls_playlist_type', 'event',
+    '-hls_segment_type', 'fmp4', '-hls_fmp4_init_filename', 'init.mp4',
+    '-hls_segment_filename', join(dir, 'seg%d.m4s'), '-hls_flags', 'independent_segments+temp_file',
+    join(dir, 'index.m3u8')];
+  const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  s.ff = ff; let log = '';
+  ff.stderr.on('data', d => { if (log.length < 3000) log += d; });
+  ff.on('close', (code, sig) => { console.log('hls ffmpeg end', 'code=' + code, 'signal=' + sig); if (log) console.error('ffmpeg:', log.trim()); s.done = true; });
+  ff.on('error', e => console.error('ffmpeg spawn:', e?.message || e));
+  console.log('hls start', 'index=' + p.i, 'audio=' + (audio ?? 'default'));
+  return s;
+}
+app.get('/hls/:tok/:file', async c => {
+  const { tok, file } = c.req.param();
+  const [payload, sig] = tok.split('.');
+  if (!payload || !sig || !equal(sig, hlsSign(payload)) || !/^(index\.m3u8|init\.mp4|seg\d+\.m4s)$/.test(file)) return c.json({ error: 'Invalid video link' }, 403);
+  let p;
+  try { p = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return c.json({ error: 'Invalid video link' }, 403); }
+  if (!(p.exp > Date.now() / 1000) || !String(p.m).startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(p.i) || p.i < 1) return c.json({ error: 'Expired video link' }, 403);
   try {
-    const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
-    const pk = index + magnet.slice(20, 60) + u.searchParams.get('lang');
-    if (!probeCache.has(pk)) { probeCache.set(pk, await probeAudio(src, u.searchParams.get('lang') === 'ru')); if (probeCache.size > 50) probeCache.clear(); }
-    const audio = probeCache.get(pk);
-    const range = /^bytes=(\d+)-(\d*)$/.exec(c.req.header('range') || ''), BIG = 2 ** 40;
-    const rEnd = range && range[2] !== '' ? Number(range[2]) : null;
-    console.log('remux req', 'range=' + (c.req.header('range') || '-'), 'ua=' + (c.req.header('user-agent') || '').slice(0, 90));
-    if (range && Number(range[1]) > 0) { release(); return new Response(null, { status: 416, headers: { 'Content-Range': 'bytes */' + BIG, 'Cache-Control': 'no-store' } }); }
-    const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
-      '-protocol_whitelist', 'http,https,tcp,tls,crypto',
-      '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-      '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts',
-      '-i', src,
-      '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
-      '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
-      '-sn', '-dn', '-map_chapters', '-1',
-      '-avoid_negative_ts', 'make_zero', '-movflags', 'frag_keyframe+empty_moov+default_base_moof+negative_cts_offsets',
-      '-f', 'mp4', 'pipe:1'];
-    const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'pipe', 'pipe'] });
-    console.log('remux start', 'index=' + index, 'audio=' + (audio ?? 'default'));
-    let sent = 0;
-    let log = '';
-    ff.stderr.on('data', d => { if (log.length < 2000) log += d; });
-    const kill = () => { try { ff.kill('SIGKILL'); } catch {} };
-    const limit = setTimeout(kill, 6 * 3600 * 1000);
-    ff.on('close', (code, sig) => { clearTimeout(limit); release(); console.log('remux end', 'code=' + code, 'signal=' + sig, 'bytes=' + sent); if (log) console.error('ffmpeg:', code, log.trim()); });
-    ff.on('error', e => { console.error('ffmpeg spawn:', e?.message || e); release(); });
-    const body = new ReadableStream({
-      start(ctrl) {
-        ff.stdout.on('data', chunk => {
-          if (rEnd !== null && sent >= rEnd + 1) return;
-          if (rEnd !== null && sent + chunk.length > rEnd + 1) chunk = chunk.subarray(0, rEnd + 1 - sent);
-          sent += chunk.length;
-          try { ctrl.enqueue(new Uint8Array(chunk)); } catch { kill(); return; }
-          if (rEnd !== null && sent >= rEnd + 1) { try { ctrl.close(); } catch {} kill(); }
-        });
-        ff.stdout.on('end', () => { try { ctrl.close(); } catch {} });
-        ff.stdout.on('error', () => { try { ctrl.close(); } catch {} });
-      },
-      cancel() { kill(); }
-    });
-    const h = { 'Content-Type': 'video/mp4', 'Cache-Control': 'no-store', 'X-Accel-Buffering': 'no' };
-    if (range) { Object.assign(h, { 'Accept-Ranges': 'bytes', 'Content-Range': `bytes 0-${rEnd ?? BIG - 1}/${BIG}` }); if (rEnd !== null) h['Content-Length'] = String(rEnd + 1); return new Response(body, { status: 206, headers: h }); }
-    h['Accept-Ranges'] = 'bytes';
-    return new Response(body, { status: 200, headers: h });
-  } catch (e) { release(); console.error('remux failed:', e?.message || e); return c.json({ error: 'Remux failed' }, 502); }
+    let s = sessions.get(payload);
+    if (!s) s = await startSession(payload, p);
+    s.last = Date.now();
+    const path = join(s.dir, file), until = Date.now() + (file === 'index.m3u8' ? 90000 : 30000);
+    while (!existsSync(path)) {
+      if (s.done || !sessions.has(payload) || Date.now() > until) return c.json({ error: 'Not ready' }, 404);
+      await new Promise(r => setTimeout(r, 300));
+    }
+    const buf = await readFile(path);
+    return new Response(buf, { status: 200, headers: { 'Content-Type': hlsMime(file), 'Cache-Control': 'no-store' } });
+  } catch (e) { console.error('hls failed:', e?.message || e); return c.json({ error: 'HLS failed' }, 502); }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
