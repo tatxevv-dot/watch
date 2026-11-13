@@ -233,13 +233,16 @@ app.post('/api/torrent/stream', async c => {
 let remuxing = 0;
 const probeCache = new Map();
 const probeAudio = (src, wantRu) => new Promise(resolve => {
-  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '8000000', '-probesize', '8000000', '-show_entries', 'stream=index,codec_type,codec_name,profile,pix_fmt,width,height:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
+  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '1000000', '-probesize', '2000000', '-show_entries', 'stream=index,codec_type,codec_name,profile,pix_fmt,width,height:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
     if (err) { console.error('ffprobe:', err.message); return resolve(null); }
     try {
       const all = JSON.parse(out).streams || [];
       console.log('probe', JSON.stringify(all.map(s => [s.codec_type, s.codec_name, s.profile, s.pix_fmt, s.height, s.tags?.language].filter(Boolean).join('/'))));
       const a = all.filter(s => s.codec_type === 'audio');
-      const i = wantRu ? a.findIndex(s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || '')) : -1;
+      const isRu = s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || '');
+      const bad = s => /commentary|комментар|original|оригин/i.test(s.tags?.title || '');
+      let i = wantRu ? a.findIndex(s => isRu(s) && !bad(s)) : -1;
+      if (wantRu && i < 0) i = a.findIndex(isRu);
       resolve(i >= 0 ? i : null);
     } catch { resolve(null); }
   });
@@ -286,33 +289,61 @@ async function diagSegment(s) {
     execFile('ffprobe', ['-v', 'error', '-select_streams', 'v:0', '-show_entries', 'packet=pts_time,dts_time,flags', '-read_intervals', '%+#8', '-of', 'csv=p=0', out], { timeout: 20000 }, (e, o) => console.log('hls diag pkts', JSON.stringify((o || '').trim().split('\n').join(' '))));
   } catch (e) { console.error('diag:', e?.message || e); }
 }
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+async function warmStream(src, ms) {
+  const until = Date.now() + ms;
+  while (Date.now() < until) {
+    try {
+      const r = await fetch(src, { headers: { Range: 'bytes=0-1' }, signal: AbortSignal.timeout(25000) });
+      const ok = r.ok; try { await r.body?.cancel(); } catch {}
+      if (ok) return true;
+      console.log('hls warm', r.status);
+    } catch (e) { console.log('hls warm err', e?.message || e); }
+    await sleep(2000);
+  }
+  return false;
+}
 async function startSession(key, p) {
   if (sessions.size >= 3) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
   const dir = join(HLS_ROOT, randomBytes(8).toString('hex'));
-  const s = { dir, last: Date.now(), started: Date.now(), ff: null };
+  const s = { dir, last: Date.now(), started: Date.now(), ff: null, done: false };
   sessions.set(key, s);
   await mkdir(dir, { recursive: true });
   const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(p.m)}&play=true&index=${p.i}`;
-  const aMap = p.lang === 'ru' ? '0:a:m:language:rus?' : '0:a:0?';
-  if (!sessions.has(key)) return s;
-  const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
-    '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
-    '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
-    '-err_detect', 'ignore_err', '-analyzeduration', '2000000', '-probesize', '4000000', '-fflags', '+genpts+discardcorrupt', '-readrate', '3',
-    '-i', src,
-    '-map', '0:v:0', '-map', aMap,
-    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
-    '-sn', '-dn', '-map_chapters', '-1', '-avoid_negative_ts', 'make_zero',
-    '-f', 'hls', '-hls_time', '2', '-hls_list_size', '0', '-hls_playlist_type', 'event',
-    '-hls_segment_type', 'fmp4', '-hls_fmp4_init_filename', 'init.mp4',
-    '-hls_segment_filename', join(dir, 'seg%d.m4s'), '-hls_flags', 'independent_segments+temp_file',
-    join(dir, 'index.m3u8')];
-  const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
-  s.ff = ff; let log = '';
-  ff.stderr.on('data', d => { if (log.length < 3000) log += d; });
-  ff.on('close', (code, sig) => { console.log('hls ffmpeg end', 'code=' + code, 'signal=' + sig); if (log) console.error('ffmpeg:', log.trim()); s.done = true; });
-  ff.on('error', e => console.error('ffmpeg spawn:', e?.message || e));
-  console.log('hls start', 'index=' + p.i, 'audio=' + aMap);
+  (async () => {
+    try {
+      const warm = await warmStream(src, 70000);
+      if (!sessions.has(key)) return;
+      const ai = await probeAudio(src, p.lang === 'ru');
+      const aMap = `0:a:${ai ?? 0}?`;
+      if (!sessions.has(key)) return;
+      const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
+        '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
+        '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
+        '-err_detect', 'ignore_err', '-analyzeduration', '2000000', '-probesize', '4000000', '-fflags', '+genpts+discardcorrupt', '-readrate', '3',
+        '-i', src,
+        '-map', '0:v:0', '-map', aMap,
+        '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
+        '-sn', '-dn', '-map_chapters', '-1', '-avoid_negative_ts', 'make_zero',
+        '-f', 'hls', '-hls_time', '2', '-hls_list_size', '0', '-hls_playlist_type', 'event',
+        '-hls_segment_type', 'fmp4', '-hls_fmp4_init_filename', 'init.mp4',
+        '-hls_segment_filename', join(dir, 'seg%d.m4s'), '-hls_flags', 'independent_segments+temp_file',
+        join(dir, 'index.m3u8')];
+      for (let attempt = 1; attempt <= 4; attempt++) {
+        console.log('hls start', 'attempt=' + attempt, 'warm=' + warm, 'index=' + p.i, 'audio=' + aMap);
+        const code = await new Promise(resolve => {
+          const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+          s.ff = ff; let log = '';
+          ff.stderr.on('data', d => { if (log.length < 3000) log += d; });
+          ff.on('close', (c, sig) => { console.log('hls ffmpeg end', 'code=' + c, 'signal=' + sig); if (log) console.error('ffmpeg:', log.trim().slice(-1500)); resolve(c); });
+          ff.on('error', e => { console.error('ffmpeg spawn:', e?.message || e); resolve(-1); });
+        });
+        if (!sessions.has(key) || code === 0 || existsSync(join(dir, 'index.m3u8'))) break;
+        await warmStream(src, 30000);
+      }
+    } catch (e) { console.error('hls session:', e?.message || e); }
+    finally { s.done = true; }
+  })();
   return s;
 }
 app.get('/hls/:tok/:file', async c => {
