@@ -1,4 +1,9 @@
-import { createHmac, timingSafeEqual } from 'node:crypto';
+import { createHmac, timingSafeEqual, randomBytes } from 'node:crypto';
+import { spawn, execFile } from 'node:child_process';
+import { mkdir, rm, readFile } from 'node:fs/promises';
+import { existsSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { Hono } from 'hono';
 import { bodyLimit } from 'hono/body-limit';
 import { serve } from '@hono/node-server';
@@ -170,10 +175,10 @@ app.post('/api/torrent/search', async c => {
 });
 app.use('/api/torrent/stream', bodyLimit({ maxSize: 4096 }));
 app.post('/api/torrent/stream', async c => {
-  let magnet, sig;
+  let magnet, sig, lang = 'orig';
   try {
     const body = await c.req.json();
-    magnet = String(body.magnet || ''); sig = String(body.sig || '');
+    magnet = String(body.magnet || ''); sig = String(body.sig || ''); lang = body.lang === 'ru' ? 'ru' : 'orig';
     if (!magnet.startsWith('magnet:?xt=urn:btih:')) throw new Error();
   } catch { return c.json({ error: 'Expected a magnet link' }, 400); }
   const admin = isAdmin(c);
@@ -209,10 +214,9 @@ app.post('/api/torrent/stream', async c => {
             const files = (st.file_stats || []).filter(f => /\.(mp4|m4v|webm|mkv|avi|mov)$/i.test(f.path || ''));
             const main = files.sort((x, y) => (y.length || 0) - (x.length || 0))[0] || st.file_stats?.[0];
             const index = main?.id || 1;
-            const internalStreamUrl = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(magnet)}&play=true&index=${index}`;
-            const expiry = Math.floor(Date.now() / 1000) + 14400;
-            const base = new URL(c.req.url).origin;
-            return c.json({ streamUrl: signed(encodeProxyUrl(internalStreamUrl, '', base, {}), base, expiry) });
+            const base = process.env.RENDER_EXTERNAL_URL || new URL(c.req.url).origin;
+            const payload = Buffer.from(JSON.stringify({ m: magnet, i: Number(index), lang, exp: Math.floor(Date.now() / 1000) + 14400 })).toString('base64url');
+            return c.json({ streamUrl: `${base.replace(/\/$/, '')}/hls/${payload}.${hlsSign(payload)}/index.m3u8` });
           }
         } else console.error('TorrServer get HTTP', r.status);
       } catch (e) { console.error('TorrServer get error:', e?.message || e); }
@@ -222,6 +226,90 @@ app.post('/api/torrent/stream', async c => {
     return c.json({ error: 'No peers yet, try again or another title' }, 504);
   } catch (e) { console.error('stream failed:', e?.message || e); return c.json({ error: 'TorrServer stream failed' }, 502); }
   finally { streaming--; }
+});
+/* MKV/любой контейнер -> фрагментированный MP4 на лету: видео без перекодирования, звук в AAC */
+let remuxing = 0;
+const probeCache = new Map();
+const probeAudio = (src, wantRu) => new Promise(resolve => {
+  execFile('ffprobe', ['-v', 'error', '-protocol_whitelist', 'http,https,tcp,tls,crypto', '-analyzeduration', '8000000', '-probesize', '8000000', '-show_entries', 'stream=index,codec_type,codec_name,profile,pix_fmt,width,height:stream_tags=language,title', '-of', 'json', src], { timeout: 25000 }, (err, out) => {
+    if (err) { console.error('ffprobe:', err.message); return resolve(null); }
+    try {
+      const all = JSON.parse(out).streams || [];
+      console.log('probe', JSON.stringify(all.map(s => [s.codec_type, s.codec_name, s.profile, s.pix_fmt, s.height, s.tags?.language].filter(Boolean).join('/'))));
+      const a = all.filter(s => s.codec_type === 'audio');
+      const i = wantRu ? a.findIndex(s => /^(rus|ru)$/i.test(s.tags?.language || '') || RU_RE.test(s.tags?.title || '')) : -1;
+      resolve(i >= 0 ? i : null);
+    } catch { resolve(null); }
+  });
+});
+const HLS_ROOT = join(tmpdir(), 'watch-hls');
+const sessions = new Map();
+const hlsMime = f => f.endsWith('.m3u8') ? 'application/vnd.apple.mpegurl' : f.endsWith('.m4s') ? 'video/iso.segment' : 'video/mp4';
+const hlsSign = payload => createHmac('sha256', SIGNING_SECRET).update('hls:' + payload).digest('base64url');
+const stopSession = (key, why) => {
+  const s = sessions.get(key); if (!s) return;
+  sessions.delete(key); try { s.ff?.kill('SIGKILL'); } catch {}
+  rm(s.dir, { recursive: true, force: true }).catch(() => {});
+  console.log('hls stop', why);
+};
+setInterval(() => { const now = Date.now(); for (const [k, s] of sessions) if (now - s.last > 10 * 60 * 1000 || now - s.started > 6 * 3600 * 1000) stopSession(k, 'idle'); }, 60000).unref();
+rm(HLS_ROOT, { recursive: true, force: true }).catch(() => {});
+async function startSession(key, p) {
+  if (sessions.size >= 3) { const old = [...sessions.entries()].sort((a, b) => a[1].last - b[1].last)[0]; stopSession(old[0], 'evicted'); }
+  const dir = join(HLS_ROOT, randomBytes(8).toString('hex'));
+  const s = { dir, last: Date.now(), started: Date.now(), ff: null };
+  sessions.set(key, s);
+  await mkdir(dir, { recursive: true });
+  const src = `${TORRSERVER_URL}/stream?link=${encodeURIComponent(p.m)}&play=true&index=${p.i}`;
+  const audio = await probeAudio(src, p.lang === 'ru');
+  if (!sessions.has(key)) return s;
+  const args = ['-hide_banner', '-loglevel', 'warning', '-nostdin',
+    '-protocol_whitelist', 'file,http,https,tcp,tls,crypto',
+    '-reconnect', '1', '-reconnect_streamed', '1', '-reconnect_delay_max', '5',
+    '-err_detect', 'ignore_err', '-analyzeduration', '8000000', '-probesize', '8000000', '-fflags', '+genpts+discardcorrupt', '-readrate', '3',
+    '-i', src,
+    '-map', '0:v:0', '-map', `0:a:${audio ?? 0}?`,
+    '-c:v', 'copy', '-c:a', 'aac', '-b:a', '160k', '-ac', '2',
+    '-sn', '-dn', '-map_chapters', '-1', '-avoid_negative_ts', 'make_zero',
+    '-f', 'hls', '-hls_time', '6', '-hls_list_size', '0', '-hls_playlist_type', 'event',
+    '-hls_segment_type', 'fmp4', '-hls_fmp4_init_filename', 'init.mp4',
+    '-hls_segment_filename', join(dir, 'seg%d.m4s'), '-hls_flags', 'independent_segments+temp_file',
+    join(dir, 'index.m3u8')];
+  const ff = spawn('ffmpeg', args, { stdio: ['ignore', 'ignore', 'pipe'] });
+  s.ff = ff; let log = '';
+  ff.stderr.on('data', d => { if (log.length < 3000) log += d; });
+  ff.on('close', (code, sig) => { console.log('hls ffmpeg end', 'code=' + code, 'signal=' + sig); if (log) console.error('ffmpeg:', log.trim()); s.done = true; });
+  ff.on('error', e => console.error('ffmpeg spawn:', e?.message || e));
+  console.log('hls start', 'index=' + p.i, 'audio=' + (audio ?? 'default'));
+  return s;
+}
+app.get('/hls/:tok/:file', async c => {
+  const { tok, file } = c.req.param();
+  const [payload, sig] = tok.split('.');
+  if (!payload || !sig || !equal(sig, hlsSign(payload)) || !/^(index\.m3u8|init\.mp4|seg\d+\.m4s)$/.test(file)) { console.log('hls req', file, 403, 'bad token/file'); return c.json({ error: 'Invalid video link' }, 403); }
+  let p;
+  try { p = JSON.parse(Buffer.from(payload, 'base64url').toString()); } catch { return c.json({ error: 'Invalid video link' }, 403); }
+  if (!(p.exp > Date.now() / 1000) || !String(p.m).startsWith('magnet:?xt=urn:btih:') || !Number.isInteger(p.i) || p.i < 1) return c.json({ error: 'Expired video link' }, 403);
+  try {
+    const key = p.i + '|' + p.lang + '|' + p.m;
+    let s = sessions.get(key);
+    if (!s) s = await startSession(key, p);
+    s.last = Date.now();
+    const path = join(s.dir, file), until = Date.now() + (file === 'index.m3u8' ? 100000 : 30000);
+    const ready = async () => {
+      if (!existsSync(path)) return false;
+      if (file !== 'index.m3u8') return true;
+      const t = await readFile(path, 'utf8').catch(() => '');
+      return t.includes('#EXT-X-ENDLIST') || (t.match(/#EXTINF/g) || []).length >= 3;
+    };
+    while (!(await ready())) {
+      if (s.done || !sessions.has(key) || Date.now() > until) { console.log('hls req', file, 'NOT READY', 'done=' + !!s.done); return c.json({ error: 'Not ready' }, 404); }
+      await new Promise(r => setTimeout(r, 300));
+    }
+    const buf = await readFile(path);
+    console.log('hls req', file, 200, buf.length + 'b', 'wait=' + (Date.now() - s.last) + 'ms', (c.req.header('user-agent') || '').includes('iPhone') ? 'iphone' : 'other');
+    return new Response(buf, { status: 200, headers: { 'Content-Type': hlsMime(file), 'Cache-Control': 'no-store' } });
+  } catch (e) { console.error('hls failed:', e?.message || e); return c.json({ error: 'HLS failed' }, 502); }
 });
 app.get('/proxy', async c => {
   const u = new URL(c.req.url), expiry = Number(u.searchParams.get('exp'));
