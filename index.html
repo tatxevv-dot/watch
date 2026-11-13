@@ -996,7 +996,7 @@ function initPlayer(root, items, ctx) {
       if (s.r.live) {
         scr.insertAdjacentHTML("beforeend", '<div class="pp-over" data-ld style="pointer-events:none"><b>Готовим видео…</b><span>Первый запуск может занять до минуты</span></div>');
         const rmLd = () => { const o = scr.querySelector("[data-ld]"); if (o) o.remove(); };
-        ["loadeddata", "playing", "error"].forEach(ev => el.addEventListener(ev, rmLd, { once: true }));
+        ["loadedmetadata", "loadeddata", "canplay", "play", "playing", "timeupdate", "error"].forEach(ev => el.addEventListener(ev, rmLd));
         begin(null);
       }
       if (isHls(s.r.src) && window.Hls && Hls.isSupported()) {
